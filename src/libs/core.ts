@@ -216,20 +216,20 @@ export class SwarmChat {
   /** The SwarmChat instance will start reading UsersFeedCommit messages, so it will hear about registrations, and users becoming inactive.
    * This way it will know who are the actie users of the chat. */
   public startUserFetchProcess(topic: string) {
-    if (this.userFetchClock) {
-      clearInterval(this.userFetchClock);
+    if (this.fetchUsersFeedInterval) {
+      clearInterval(this.fetchUsersFeedInterval);
     }
-    this.userFetchClock = setInterval(
-      () => this.tryUserFetch(topic),
+    this.fetchUsersFeedInterval = setInterval(
+      () => this.getNewUsers(topic),
       this.USER_UPDATE_INTERVAL
     );
   }
 
   /** The SwarmChat instance will stop reading UsersFeedCommit messages, so won't know who are the currently active users. */
   public stopUserFetchProcess() {
-    if (this.userFetchClock) {
-      clearInterval(this.userFetchClock);
-      this.userFetchClock = null;
+    if (this.fetchUsersFeedInterval) {
+      clearInterval(this.fetchUsersFeedInterval);
+      this.fetchUsersFeedInterval = null;
     }
   }
 
@@ -262,17 +262,17 @@ export class SwarmChat {
         topic
       );
 
-      const resp = await this.utils.fetchFeedData(this.bee, feedReader);
+      const res = await this.utils.fetchFeedData(this.bee, feedReader);
 
-      if (resp) {
-        const { feedData, nextIndex } = resp;
+      if (res) {
+        const { feedData, nextIndex } = res;
         this.usersFeedIndex = nextIndex;
 
         const validUsers = feedData.users.filter((user: any) =>
           this.utils.validateUserObject(user)
         );
 
-        return validUsers as unknown as UserWithIndex[];
+        this.setUsers(validUsers);
       }
     } catch (error) {
       this.handleError({
@@ -312,18 +312,6 @@ export class SwarmChat {
         );
       }
 
-      if (this.gateway) {
-        if (this.gsocSubscribtion) {
-          // Only the Gateway is doing Activity Analysis (removeIdleUsers is called by this function)
-          this.startActivityAnalyzes(topic, address, stamp as BatchId);
-          console.info("You are the Gateway");
-        } else {
-          console.info("You are not the Gateway");
-        }
-      } else {
-        this.startActivityAnalyzes(topic, address, stamp as BatchId); // Every User is doing Activity Analysis (when not in gateway mode), and one of them is selected to write the UsersFeed
-      }
-
       const alreadyRegistered = this.users.find(
         (user) => user.address === participant
       );
@@ -349,44 +337,15 @@ export class SwarmChat {
         throw new Error("User object validation failed");
       }
 
-      if (this.gateway) {
-        // Gateway mode
-        const result = await this.utils.sendMessageToGsoc(
-          this.bee.url,
-          stamp as BatchId,
-          topic,
-          this.gsocResourceId,
-          JSON.stringify(newUser)
-        );
+      const result = await this.utils.sendMessageToGsoc(
+        this.bee.url,
+        stamp as BatchId,
+        topic,
+        this.gsocResourceId,
+        JSON.stringify(newUser)
+      );
 
-        if (!result?.payload.length) throw "Error writing User object to GSOC!";
-      } else {
-        // Not in gateway mode
-        const uploadObject: UsersFeedCommit = {
-          users: [newUser],
-          overwrite: false,
-        };
-
-        const userRef = await this.utils.uploadObjectToBee(
-          this.bee,
-          uploadObject,
-          stamp as any
-        );
-        if (!userRef) throw new Error("Could not upload user to bee");
-
-        const feedWriter = this.utils.graffitiFeedWriterFromTopic(
-          this.bee,
-          topic
-        );
-
-        try {
-          await feedWriter.upload(stamp, userRef.reference);
-        } catch (error) {
-          if (this.utils.isNotFoundError(error)) {
-            await feedWriter.upload(stamp, userRef.reference, { index: 0 });
-          }
-        }
-      }
+      if (!result?.payload.length) throw "Error writing User object to GSOC!";
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
@@ -401,149 +360,6 @@ export class SwarmChat {
   /** Will give back timestamp-ordered messages */
   public orderMessages(messages: MessageData[]) {
     return this.utils.orderMessages(messages);
-  }
-
-  // Every User is doing Activity Analysis, and one of them is selected to write the UsersFeed
-  private async startActivityAnalyzes(
-    topic: string,
-    ownAddress: EthAddress,
-    stamp: BatchId
-  ) {
-    try {
-      this.logger.info("Starting Activity Analysis...");
-      this.removeIdleUsersInterval = setInterval(
-        () => this.removeIdleUsers(topic, ownAddress, stamp),
-        this.REMOVE_INACTIVE_USERS_INTERVAL
-      );
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `startActivityAnalyzes`,
-        throw: false,
-      });
-    }
-  }
-
-  // Used for Activity Analysis, creates or updates entry in the activity table
-  private async updateUserActivityAtRegistration() {
-    try {
-      for (let i = 0; i < this.newlyRegisteredUsers.length; i++) {
-        const address = this.newlyRegisteredUsers[i].address;
-        this.logger.info(
-          `New user registered. Inserting ${this.newlyRegisteredUsers[i].timestamp} to ${address}`
-        );
-        if (this.userActivityTable[address])
-          // Update entry
-          this.userActivityTable[address].timestamp =
-            this.newlyRegisteredUsers[i].timestamp;
-        // Create new entry
-        else
-          this.userActivityTable[address] = {
-            timestamp: this.newlyRegisteredUsers[i].timestamp,
-            readFails: 0,
-          };
-      }
-
-      this.logger.trace(`User Activity Table:  ${this.userActivityTable}`);
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `updateUserActivityAtRegistration`,
-        throw: false,
-      });
-    }
-  }
-
-  // Used for Activity Analysis, saves last message timestamp into activity table
-  private async updateUserActivityAtNewMessage(theNewMessage: MessageData) {
-    try {
-      this.logger.trace(
-        `New message (updateUserActivityAtNewMessage):  ${theNewMessage}`
-      );
-
-      this.userActivityTable[theNewMessage.address] = {
-        timestamp: theNewMessage.timestamp,
-        readFails: 0,
-      };
-
-      this.logger.trace(
-        `User Activity Table (new message received):  ${this.userActivityTable}`
-      );
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `updateUserActivityAtNewMessage`,
-        throw: false,
-      });
-    }
-  }
-
-  // Every user is taking part in removeIdleUsers (Activity Analysis), but only one of them will be selected, for writting the Users feed
-  // This selection is pseudo-random, and it should select the same user in every app instance
-  private async removeIdleUsers(
-    topic: string,
-    ownAddress: EthAddress,
-    stamp: BatchId
-  ) {
-    try {
-      if (this.reqCount < 32) return; // Newly registered users shouldn't take part in this.
-
-      this.logger.debug(
-        `UserActivity table inside removeIdleUsers:  ${this.userActivityTable}`
-      );
-      if (this.removeIdleIsRunning) {
-        this.logger.warn("Previous removeIdleUsers is still running");
-        //TODO debug this
-        // we could do some statistics about how slow is this node, so it will select it with less chance
-        return;
-      }
-      this.removeIdleIsRunning = true;
-
-      const activeUsers = this.utils.getActiveUsers(
-        this.users,
-        this.userActivityTable,
-        this.IDLE_TIME,
-        this.USER_LIMIT
-      );
-
-      if (activeUsers.length === 0 && !this.gateway) {
-        this.logger.info(
-          "There are no active users, Activity Analysis will continue when a user registers."
-        );
-        await this.writeUsersFeedCommit(topic, stamp, activeUsers);
-        if (this.removeIdleUsersInterval)
-          clearInterval(this.removeIdleUsersInterval);
-        this.removeIdleIsRunning = false;
-        return;
-      }
-
-      let selectedUser: EthAddress;
-      if (this.gateway) {
-        // If in gateway mode, the Gateway is always doing the Users feed writing
-        if (!this.gsocSubscribtion)
-          throw "Only Gateway should run  this function in gateway mode!";
-        selectedUser = ownAddress; // removeIdleUsers wouldn't run, if you wouldn't be the Gateway (when in gateway mode)
-      } else {
-        selectedUser = this.utils.selectUsersFeedCommitWriter(
-          activeUsers,
-          this.emitStateEvent.bind(this)
-        );
-      }
-
-      if (selectedUser === ownAddress) {
-        await this.writeUsersFeedCommit(topic, stamp, activeUsers);
-        this.setUsers(activeUsers);
-      }
-
-      this.removeIdleIsRunning = false;
-    } catch (error) {
-      this.removeIdleIsRunning = false;
-      this.handleError({
-        error: error as unknown as Error,
-        context: `removeIdleUsers`,
-        throw: false,
-      });
-    }
   }
 
   // Write a UsersFeedCommit to the Users feed, which might remove some inactive users from the readMessagesForAll loop
@@ -616,21 +432,11 @@ export class SwarmChat {
     }
   }
 
-  // Adds a getNewUsers to the usersQueue, which will fetch new users
-  private tryUserFetch(topic: string) {
-    if (!this.userFetchIsRunning) {
-      this.getNewUsers(topic);
-    } else {
-      console.info("Previous getNewUsers is still running");
-    }
-  }
-
   /** Reads the Users feed, and changes the users object, accordingly
    *  This is mostly called internally, but we made it public, for checking registration success */
   public async getNewUsers(topic: string) {
     try {
       this.emitStateEvent(EVENTS.LOADING_USERS, true);
-      this.userFetchIsRunning = true;
 
       const feedReader = this.utils.graffitiFeedReaderFromTopic(
         this.bee,
@@ -639,81 +445,42 @@ export class SwarmChat {
       console.info(
         `Downloading UsersFeedCommit at index ${this.usersFeedIndex}`
       );
-      const feedEntry = await feedReader.download({
-        index: this.usersFeedIndex,
-      });
-      console.log(`feedEntry: ${feedEntry.reference}`);
-      const data = await this.bee.downloadData(feedEntry.reference, {
-        headers: {
-          "Swarm-Redundancy-Level": "0",
-        },
-      });
-      console.log(`Data downloaded.`);
-      const objectFromFeed = data.json() as unknown as UsersFeedCommit;
-      this.logger.debug(`New UsersFeedCommit received!  ${objectFromFeed}`);
 
-      const validUsers = objectFromFeed.users.filter((user) =>
+      const res = await this.utils.fetchFeedData(
+        this.bee,
+        feedReader,
+        this.usersFeedIndex
+      );
+
+      if (!res) {
+        console.info("No new users found.");
+        return;
+      }
+
+      const { feedData, nextIndex } = res;
+      this.logger.debug(`New UsersFeedCommit received!  ${feedData}`);
+
+      const validUsers = feedData.users.filter((user: any) =>
         this.utils.validateUserObject(user)
       );
 
       let newUsers: UserWithIndex[] = [];
-      if (!objectFromFeed.overwrite) {
-        // Registration
-        newUsers = [...this.users];
-        const theNewUser = {
-          ...validUsers[0],
-          index: -1,
-        };
-        newUsers.push(theNewUser);
-        this.newlyRegisteredUsers.push(theNewUser);
-        this.emitStateEvent(EVENTS.USER_REGISTERED, validUsers[0].username);
-      } else {
-        // Overwrite
-        newUsers = this.utils.removeDuplicateUsers([
-          ...this.newlyRegisteredUsers,
-          ...(validUsers as unknown as UserWithIndex[]),
-        ]);
-        this.newlyRegisteredUsers = [];
-      }
+      newUsers = this.utils.removeDuplicateUsers([
+        ...this.newlyRegisteredUsers,
+        ...(validUsers as unknown as UserWithIndex[]),
+      ]);
 
-      if (!this.gsocSubscribtion) {
-        console.info("Overwriting users object...");
-        console.log("usersFeedIndex: ", this.usersFeedIndex);
-        console.log("New users length:", newUsers.length);
-        if (newUsers.length > 0) {
-          console.info("Addres at index 0: ", newUsers[0].address);
-          console.info("Username at index 0: ", newUsers[0].username);
-        }
-        this.setUsers(this.utils.removeDuplicateUsers(newUsers));
-      }
+      this.usersFeedIndex = nextIndex;
 
-      this.usersFeedIndex++; // We assume that download was successful. Next time we are checking next index.
-
-      // update userActivityTable
-      this.updateUserActivityAtRegistration();
-      this.userFetchIsRunning = false;
-      this.emitStateEvent(EVENTS.LOADING_USERS, false);
+      this.setUsers(newUsers);
     } catch (error) {
-      this.userFetchIsRunning = false;
-      if (error instanceof Error) {
-        if (error.message.includes("timeout")) {
-          console.error("timeout error");
-          this.logger.info(`Timeout exceeded.`);
-          this.reqTimeAvg.addValue(this.MAX_TIMEOUT);
-        } else {
-          if (!this.utils.isNotFoundError(error)) {
-            this.handleError({
-              error: error as unknown as Error,
-              context: `getNewUsers`,
-              throw: false,
-            });
-          } else {
-            //TODO This might be something that helps, but it can also cause problems
-            // Probably increment a NotFound count, and if reached a certain number, do a fetchIndex
-            //if (this.usersFeedIndex > 0) this.usersFeedIndex--;
-          }
-        }
-      }
+      this.handleError({
+        error: error as unknown as Error,
+        context: `getNewUsers`,
+        throw: false,
+      });
+    } finally {
+      this.emitStateEvent(EVENTS.LOADING_USERS, false);
     }
   }
 
@@ -752,8 +519,6 @@ export class SwarmChat {
 
         this.setUsers(newList);
       }
-
-      this.updateUserActivityAtRegistration();
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
@@ -830,10 +595,6 @@ export class SwarmChat {
       // If the message is relatively new, we insert it to messages array, otherwise, we drop it
       if (messageData.timestamp + this.IDLE_TIME * 2 > Date.now()) {
         this.messages.push(messageData);
-
-        // TODO GSOC - this needs to be conditional, only Gateway is doing this. It's not a problem if other users are doing it as well, but has no significance
-        // Update userActivityTable
-        this.updateUserActivityAtNewMessage(messageData);
 
         this.messagesIndex++;
       }
@@ -982,27 +743,6 @@ export class SwarmChat {
     return this.users.length;
   }
 
-  /** Returns the IDLE_TIME constant, after this, user will be considered inactive */
-  public getIdleConst() {
-    return this.IDLE_TIME;
-  }
-
-  /** Returns the current message check interval, which is dynamic */
-  public getMessageCheckInterval() {
-    return this.messageFetchClock;
-  }
-
-  /** Returns the USER_UPDATE_INTERVAL constant, that can be set when creating a new SwarmChat instance */
-  public getUserUpdateIntervalConst() {
-    return this.USER_UPDATE_INTERVAL;
-  }
-
-  /** Clears the Users fetch queue, so we don't update user list with obsolate records */
-  public resetUsersQueue() {
-    //TODO most likely we won't use this
-    this.usersQueue.clearQueue();
-  }
-
   private handleError(errObject: ErrorObject) {
     this.logger.error(
       `Error in ${errObject.context}: ${errObject.error.message}`
@@ -1077,11 +817,6 @@ export class SwarmChat {
 
     await this.initChatRoom(roomTopic, stamp);
     this.startMessageFetchProcess(roomTopic);
-    this.startActivityAnalyzes(
-      roomTopic,
-      identity.address as EthAddress,
-      stamp as BatchId
-    );
 
     do {
       await this.utils.sleep(5000);

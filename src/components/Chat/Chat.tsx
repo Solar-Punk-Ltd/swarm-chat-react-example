@@ -81,10 +81,6 @@ const Chat: React.FC<ChatProps> = ({
     // chat.current.startMessageFetchProcess(topic);
     console.info("Message fetch process started.");
     chat.current.startUserFetchProcess(topic);
-    console.info(
-      "User fetch process started, interval: ",
-      chat.current.getUserUpdateIntervalConst()
-    );
     setChatLoaded(true);
   };
 
