@@ -200,7 +200,7 @@ const Chat: React.FC<ChatProps> = ({
           nick: nickname,
           key: wallet.privateKey,
         });
-      }, 5000);
+      }, 10000);
 
       setChatLoaded(true);
     }
