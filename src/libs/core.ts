@@ -20,6 +20,14 @@ import {
 
 import { EVENTS, MINUTE, SECOND } from "./constants";
 import { HexString } from "@anythread/gsoc/dist/types";
+import { json } from "stream/consumers";
+
+interface SampleDappRecord {
+  /** text of the message */
+  text: string;
+  /** creation time of the comment */
+  timestamp: number;
+}
 
 /**
  * Swarm Decentralized Chat
@@ -239,7 +247,10 @@ export class SwarmChat {
         stamp as BatchId,
         topic,
         this.gsocResourceId,
-        JSON.stringify(newUser)
+        {
+          text: JSON.stringify(newUser),
+          timestamp: Date.now(),
+        } as SampleDappRecord
       );
 
       console.info("User registration result: ", result);

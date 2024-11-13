@@ -1,6 +1,5 @@
 import { ethers, BytesLike, Wallet, hexlify } from "ethers";
 import { InformationSignal } from "@anythread/gsoc";
-import pino from "pino";
 import {
   BatchId,
   Bee,
@@ -28,6 +27,13 @@ import { CONSENSUS_ID, EVENTS, HEX_RADIX } from "./constants";
 import { HexString } from "@anythread/gsoc/dist/types";
 import { SingleOwnerChunk } from "@anythread/gsoc/dist/soc";
 import { FetchFeedUpdateResponse } from "@ethersphere/bee-js/dist/types/modules/feed";
+
+interface SampleDappRecord {
+  /** text of the message */
+  text: string;
+  /** creation time of the comment */
+  timestamp: number;
+}
 
 export class SwarmChatUtils {
   private handleError: (errObject: ErrorObject) => void;
@@ -557,7 +563,7 @@ export class SwarmChatUtils {
     stamp: BatchId,
     topic: string,
     resourceId: HexString<number>,
-    message: string
+    message: SampleDappRecord
   ): Promise<SingleOwnerChunk | undefined> {
     try {
       if (!resourceId) throw "ResourceID was not provided!";
@@ -565,8 +571,19 @@ export class SwarmChatUtils {
       const informationSignal = new InformationSignal(url, {
         consensus: {
           id: `SwarmDecentralizedChat::${topic}`,
-          assertRecord: (input) => {
-            return true;
+          assertRecord(value: unknown): asserts value is SampleDappRecord {
+            if (
+              value !== null &&
+              typeof value === "object" &&
+              Object.keys(value).includes("text") &&
+              Object.keys(value).includes("timestamp")
+            ) {
+              return;
+            }
+
+            throw new Error(
+              "The given value is not a valid personal storage record"
+            );
           },
         },
         postage: stamp,
