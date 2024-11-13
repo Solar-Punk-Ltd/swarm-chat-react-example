@@ -77,25 +77,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
       const EVERY_X_ROUND = 5; // Resend registration request every X round
       const MAX_ROUNDS = 60;
 
-      do {
-        if (!(rounds % EVERY_X_ROUND))
-          await chat
-            .registerUser(topic, {
-              participant: ownAddress,
-              key: privKey,
-              stamp,
-              nickName: nickname,
-            })
-            .then(() => console.info(`Registration request sent`))
-            .catch((err) =>
-              console.error(`Error while registering ${err.error}`)
-            );
-
-        await chat.getNewUsers(topic);
-        //await chat.initUsers(topic); // we might need this if reset queue does not work.
-        rounds++;
-      } while (rounds < MAX_ROUNDS && !chat.isRegistered(ownAddress));
-
       if (rounds === MAX_ROUNDS) {
         console.error("Registration did not go through");
         setSending(false);
@@ -117,7 +98,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (!chat) return;
     return () => {
       chat.stopMessageFetchProcess();
-      chat.stopUserFetchProcess();
     };
   }, []);
 

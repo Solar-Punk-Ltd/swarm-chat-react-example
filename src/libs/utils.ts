@@ -31,14 +31,9 @@ import { FetchFeedUpdateResponse } from "@ethersphere/bee-js/dist/types/modules/
 
 export class SwarmChatUtils {
   private handleError: (errObject: ErrorObject) => void;
-  private logger: pino.Logger;
 
-  constructor(
-    handleError: (errObject: ErrorObject) => void,
-    logger: pino.Logger
-  ) {
+  constructor(handleError: (errObject: ErrorObject) => void) {
     this.handleError = handleError;
-    this.logger = logger;
   }
 
   // Generate an ID for the feed, that will be connected to the stream, as Users list
@@ -223,7 +218,7 @@ export class SwarmChatUtils {
         .then(resolve)
         .catch((error) => {
           if (retries > 0) {
-            this.logger.info(
+            console.info(
               `Retrying... Attempts left: ${retries}. Error: ${error.message}`
             );
             setTimeout(() => {
@@ -359,7 +354,7 @@ export class SwarmChatUtils {
     ); // Select top 30% of activeUsers, but minimum 1
     const mostActiveUsers = activeUsers.slice(0, numUsersToselect); // Top 30% but minimum 3 (minUsersToSelect)
 
-    this.logger.debug(`Most active users:  ${mostActiveUsers}`);
+    console.debug(`Most active users:  ${mostActiveUsers}`);
     const sortedMostActiveAddresses = mostActiveUsers
       .map((user) => user.address)
       .sort();
@@ -395,7 +390,7 @@ export class SwarmChatUtils {
       idleMs[key] = now - userActivityTable[key].timestamp;
     }
 
-    this.logger.debug(`Users inside removeIdle:  ${users}`);
+    console.debug(`Users inside removeIdle:  ${users}`);
 
     const activeUsers = users.filter((user) => {
       return idleMs[user.address] < idleTime;
@@ -515,7 +510,7 @@ export class SwarmChatUtils {
     stamp: BatchId,
     topic: string,
     resourceId: HexString<number>,
-    callback: (topic: string, stamp: BatchId, gsocMessage: string) => void
+    callback: (gsocMessage: string) => void
   ) {
     try {
       if (!resourceId) throw "ResourceID was not provided!";
@@ -539,7 +534,7 @@ export class SwarmChatUtils {
               "Registration object received, calling userRegisteredThroughGsoc"
             );
             console.log("gsoc message: ", msg);
-            callback(topic, stamp, msg);
+            callback(msg);
           },
           onError: console.log,
         },
@@ -596,14 +591,14 @@ export class RunningAverage {
   private values: number[];
   private sum: number;
 
-  private logger: pino.Logger;
+  private logger: any;
 
-  constructor(maxSize: number, logger: pino.Logger) {
+  constructor(maxSize: number) {
     this.maxSize = maxSize;
     this.values = [];
     this.sum = 0;
 
-    this.logger = logger;
+    this.logger = console;
   }
 
   addValue(newValue: number) {

@@ -1,6 +1,5 @@
 import { Signature } from "ethers";
 import { ETH_ADDRESS_LENGTH } from "./constants";
-import { PrettyStream } from "pino-pretty";
 
 // Needed for EthAddress
 type FlavoredType<Type, Name> = Type & {
@@ -35,9 +34,9 @@ export type EthAddress = HexString<typeof ETH_ADDRESS_LENGTH>;
 
 // TODO: should be renamed, probably to UserDetails or UserWithKey. Or, it should be merged with other objects
 // Client-side user details, includes private key, and stamp
-export interface ParticipantDetails {
-  nickName: string;
-  participant: EthAddress;
+export interface UserDetails {
+  nick: string;
+  address: EthAddress;
   key: string;
   stamp: string;
 }

@@ -5,9 +5,4 @@ export { SwarmChat } from "./core";
 export { EVENTS } from "./constants";
 
 // Types
-export type {
-  MessageData,
-  ParticipantDetails,
-  UserWithIndex,
-  EthAddress,
-} from "./types";
+export type { MessageData, UserWithIndex, EthAddress } from "./types";

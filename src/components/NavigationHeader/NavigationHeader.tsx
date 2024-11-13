@@ -1,6 +1,5 @@
 import React from "react";
 import "./NavigationHeader.scss";
-import { useNavigate } from "react-router-dom";
 import LeftNavigationIcon from "../icons/LeftNavigationIcon/LeftNavigationIcon";
 
 interface NavigationHeaderProps {
@@ -18,7 +17,6 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   saveQuestionBeforeLeave,
   handlerInCaseOfSave,
 }) => {
-  const navigate = useNavigate();
   const formattedTo = to
     ? to.charAt(1).toUpperCase() + to.slice(2)
     : toText
@@ -32,9 +30,9 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
       }
     } else {
       if (to && to.length > 0) {
-        navigate(to);
+        //navigate(to);
       } else {
-        navigate(-1);
+        //navigate(-1);
       }
     }
   };

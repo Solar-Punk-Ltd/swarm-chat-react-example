@@ -32,7 +32,7 @@ function App() {
       <Chat
         title={"DOOMSDAY"}
         topic={"DOOMSDAYTOPIC"}
-        privKey={wallet.privateKey}
+        wallet={wallet}
         stamp={
           "2d89dfa779b83ea3d9270186f5110e4410cfeb1ccfe8894ec6f372bb67a18ad1" as BatchId
         }
@@ -45,7 +45,6 @@ function App() {
         }
         topMenuColor={undefined}
         backAction={() => {}}
-        key={"DOOMSDAY"}
         activeNumber={0}
       />
     </div>

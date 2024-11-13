@@ -1,7 +1,5 @@
 import { BatchId, Bee, Reference } from "@ethersphere/bee-js";
 import { ethers, Signature } from "ethers";
-import pino from "pino";
-import pinoPretty from "pino-pretty";
 
 import { RunningAverage, SwarmChatUtils } from "./utils";
 import { EventEmitter } from "./eventEmitter";
@@ -13,9 +11,9 @@ import {
   EthAddress,
   GsocSubscribtion,
   MessageData,
-  ParticipantDetails,
   User,
   UserActivity,
+  UserDetails,
   UsersFeedCommit,
   UserWithIndex,
 } from "./types";
@@ -46,7 +44,7 @@ export class SwarmChat {
   private F_STEP = 100; // Message fetch step (ms)
 
   /** Actual variables, like Bee instance, messages, analytics, user list, etc */
-  private bee = new Bee("http://localhost:1633");
+  private bee = new Bee("http://65.108.40.58:1733");
   private emitter = new EventEmitter();
   private messages: MessageData[] = [];
   private reqTimeAvg;
@@ -70,7 +68,6 @@ export class SwarmChat {
   private newlyRegisteredUsers: UserWithIndex[] = []; // keep track of fresh users
   private reqCount = 0; // Diagnostics only
   //private prettyStream = null;
-  private logger = pino(/*this.prettyStream*/); // Logger. Levels: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent"
   private utils: SwarmChatUtils;
 
   private eventStates: Record<string, boolean> = {
@@ -112,39 +109,16 @@ export class SwarmChat {
     this.MESSAGE_FETCH_MAX = settings.messageFetchMax || 8 * SECOND; // Highest possible value for message fetch interval
     this.F_STEP = settings.fStep || 100; // When interval is changed, it is changed by this value
 
-    const prettier = settings.prettier
-      ? pinoPretty({
-          // Colorizing capability for logger
-          colorize: true,
-          translateTime: "SYS:standard",
-          ignore: "pid,hostname",
-        })
-      : undefined;
-
-    this.logger = pino(
-      {
-        // Logger can be set to "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent"
-        level: settings.logLevel || "warn",
-        browser: {
-          // This is necesarry for browser compatibility
-          asObject: true,
-        },
-      },
-      prettier
-    );
-
-    this.utils = new SwarmChatUtils(this.handleError.bind(this), this.logger); // Initialize chat utils
+    this.utils = new SwarmChatUtils(this.handleError.bind(this)); // Initialize chat utils
     this.usersQueue = new AsyncQueue(
       { waitable: true, max: 1 },
-      this.handleError.bind(this),
-      this.logger
+      this.handleError.bind(this)
     );
     this.messagesQueue = new AsyncQueue(
       { waitable: true, max: 4 },
-      this.handleError.bind(this),
-      this.logger
+      this.handleError.bind(this)
     );
-    this.reqTimeAvg = new RunningAverage(1000, this.logger);
+    this.reqTimeAvg = new RunningAverage(1000);
 
     console.info(`SwarmChat created, version: v0.1.8 or above`);
   }
@@ -167,69 +141,29 @@ export class SwarmChat {
     };
   }
 
+  public fetchCurrentIndexOfUserFeed() {}
+
   /** Creates the Users feed, which is necesarry for user registration, and to handle idle users. This will create a new chat room. */
-  public async initChatRoom(
+  public async listenToNewSubscribers(
     topic: string,
-    stamp: BatchId /*, gateway?: string*/
+    stamp: BatchId,
+    resourceId: HexString
   ) {
     try {
-      // Create Users feed
-      const { consensusHash, graffitiSigner } =
-        this.utils.generateGraffitiFeedMetadata(topic);
-      await this.bee.createFeedManifest(
+      this.gsocResourceId = resourceId;
+      this.gsocSubscribtion = await this.utils.subscribeToGsoc(
+        this.bee.url,
         stamp,
-        "sequence",
-        consensusHash,
-        graffitiSigner.address
+        topic,
+        this.gsocResourceId,
+        this.userRegistrationOnGsoc.bind(this)
       );
-
-      if (this.gateway) {
-        // Mine Resource ID for GSOC (will send message to specific neighborhood)
-        const resourceId = await this.utils.mineResourceId(
-          this.bee.url,
-          stamp,
-          this.gateway,
-          topic
-        );
-        if (!resourceId) throw "Could not create resource ID!";
-        else this.gsocResourceId = resourceId;
-        console.info("resource ID: ", resourceId);
-
-        // Subscribe to the GSOC feed
-        this.gsocSubscribtion = await this.utils.subscribeToGsoc(
-          this.bee.url,
-          stamp,
-          topic,
-          this.gsocResourceId,
-          this.userRegisteredThroughGsoc.bind(this)
-        );
-      }
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
         context: `Could not create Users feed!`,
         throw: true,
       });
-    }
-  }
-
-  /** The SwarmChat instance will start reading UsersFeedCommit messages, so it will hear about registrations, and users becoming inactive.
-   * This way it will know who are the actie users of the chat. */
-  public startUserFetchProcess(topic: string) {
-    if (this.fetchUsersFeedInterval) {
-      clearInterval(this.fetchUsersFeedInterval);
-    }
-    this.fetchUsersFeedInterval = setInterval(
-      () => this.getNewUsers(topic),
-      this.USER_UPDATE_INTERVAL
-    );
-  }
-
-  /** The SwarmChat instance will stop reading UsersFeedCommit messages, so won't know who are the currently active users. */
-  public stopUserFetchProcess() {
-    if (this.fetchUsersFeedInterval) {
-      clearInterval(this.fetchUsersFeedInterval);
-      this.fetchUsersFeedInterval = null;
     }
   }
 
@@ -252,53 +186,16 @@ export class SwarmChat {
     }
   }
 
-  /** Initializes the users object, when starting the application. Will try to figure out currently active users. */
-  public async initUsers(topic: string) {
-    try {
-      this.emitStateEvent(EVENTS.LOADING_INIT_USERS, true);
-
-      const feedReader = this.utils.graffitiFeedReaderFromTopic(
-        this.bee,
-        topic
-      );
-
-      const res = await this.utils.fetchFeedData(this.bee, feedReader);
-
-      if (res) {
-        const { feedData, nextIndex } = res;
-        this.usersFeedIndex = nextIndex;
-
-        const validUsers = feedData.users.filter((user: any) =>
-          this.utils.validateUserObject(user)
-        );
-
-        this.setUsers(validUsers);
-      }
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `initUsers`,
-        throw: true,
-      });
-    } finally {
-      this.emitStateEvent(EVENTS.LOADING_INIT_USERS, false);
-    }
-  }
-
   /** Checks if a given Ethereum address is registered or not (registered means active, others will read it's messages) */
   public isRegistered(userAddress: EthAddress): boolean {
-    const findResult = this.users.findIndex(
-      (user) => user.address === userAddress
-    );
-
-    if (findResult === -1) return false;
-    else return true;
+    const findResult = this.users.find((user) => user.address === userAddress);
+    return !!findResult;
   }
 
   /** Registers the user for chat, will create a UsersFeedCommit object, and will write it to the Users feed. Also used for reconnect. */
-  public async registerUser(
+  public async keepMeRegistered(
     topic: string,
-    { participant, key, stamp, nickName: username }: ParticipantDetails
+    { address: myAddress, key, stamp, nick: username }: UserDetails
   ) {
     try {
       this.emitStateEvent(EVENTS.LOADING_REGISTRATION, true);
@@ -306,18 +203,18 @@ export class SwarmChat {
       const wallet = new ethers.Wallet(key);
       const address = wallet.address as EthAddress;
 
-      if (address.toLowerCase() !== participant.toLowerCase()) {
+      if (address.toLowerCase() !== myAddress.toLowerCase()) {
         throw new Error(
           "The provided address does not match the address derived from the private key"
         );
       }
 
       const alreadyRegistered = this.users.find(
-        (user) => user.address === participant
+        (user) => user.address === myAddress
       );
 
       if (alreadyRegistered) {
-        this.logger.info("User already registered");
+        console.info("User already registered");
         return;
       }
 
@@ -345,6 +242,7 @@ export class SwarmChat {
         JSON.stringify(newUser)
       );
 
+      console.info("User registration result: ", result);
       if (!result?.payload.length) throw "Error writing User object to GSOC!";
     } catch (error) {
       this.handleError({
@@ -369,7 +267,7 @@ export class SwarmChat {
     activeUsers: UserWithIndex[]
   ) {
     try {
-      this.logger.info(
+      console.info(
         "The user was selected for submitting the UsersFeedCommit! (removeIdleUsers)"
       );
       const usersToWrite = this.utils.removeDuplicateUsers(activeUsers);
@@ -401,9 +299,7 @@ export class SwarmChat {
           );
         } catch (error) {
           this.usersFeedIndex = 0;
-          this.logger.warn(
-            `Couldn't fetch current index, we will use 0 as index.`
-          );
+          console.warn(`Couldn't fetch current index, we will use 0 as index.`);
         }
       }
 
@@ -420,7 +316,7 @@ export class SwarmChat {
         index: this.usersFeedIndex,
       });
       this.usersFeedIndex++;
-      this.logger.debug("Upload was successful!");
+      console.debug("Upload was successful!");
 
       if (this.gateway) this.users = usersToWrite;
     } catch (error) {
@@ -432,91 +328,24 @@ export class SwarmChat {
     }
   }
 
-  /** Reads the Users feed, and changes the users object, accordingly
-   *  This is mostly called internally, but we made it public, for checking registration success */
-  public async getNewUsers(topic: string) {
+  private userRegistrationOnGsoc(gsocMessage: string) {
     try {
-      this.emitStateEvent(EVENTS.LOADING_USERS, true);
-
-      const feedReader = this.utils.graffitiFeedReaderFromTopic(
-        this.bee,
-        topic
-      );
-      console.info(
-        `Downloading UsersFeedCommit at index ${this.usersFeedIndex}`
-      );
-
-      const res = await this.utils.fetchFeedData(
-        this.bee,
-        feedReader,
-        this.usersFeedIndex
-      );
-
-      if (!res) {
-        console.info("No new users found.");
-        return;
-      }
-
-      const { feedData, nextIndex } = res;
-      this.logger.debug(`New UsersFeedCommit received!  ${feedData}`);
-
-      const validUsers = feedData.users.filter((user: any) =>
-        this.utils.validateUserObject(user)
-      );
-
-      let newUsers: UserWithIndex[] = [];
-      newUsers = this.utils.removeDuplicateUsers([
-        ...this.newlyRegisteredUsers,
-        ...(validUsers as unknown as UserWithIndex[]),
-      ]);
-
-      this.usersFeedIndex = nextIndex;
-
-      this.setUsers(newUsers);
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `getNewUsers`,
-        throw: false,
-      });
-    } finally {
-      this.emitStateEvent(EVENTS.LOADING_USERS, false);
-    }
-  }
-
-  private userRegisteredThroughGsoc(
-    topic: string,
-    stamp: BatchId,
-    gsocMessage: string
-  ) {
-    try {
-      // Validation happens in subscribeToGsoc
       const user: UserWithIndex = {
         ...(JSON.parse(gsocMessage) as unknown as User),
         index: -1,
       };
 
+      if (!this.utils.validateUserObject(user)) {
+        throw new Error("User object validation failed");
+      }
+
       console.info(
         "\n------Length of users list at userRegisteredThroughGsoc: ",
-        this.users.length
+        this.users
       );
-      if (this.users.length > 0) {
-        console.info(
-          "Addres at last index: ",
-          this.users[this.users.length - 1].address
-        );
-        console.info(
-          "Username at last index: ",
-          this.users[this.users.length - 1].username
-        );
-      }
 
       if (!this.isRegistered(user.address)) {
         const newList = [...this.users, user];
-        //this.utils.removeDuplicateUsers(newList);
-
-        this.writeUsersFeedCommit(topic, stamp, newList);
-
         this.setUsers(newList);
       }
     } catch (error) {
@@ -538,7 +367,7 @@ export class SwarmChat {
 
       for (const user of this.users) {
         this.reqCount++;
-        this.logger.trace(
+        console.trace(
           `Request enqueued. Total request count: ${this.reqCount}`
         );
         this.messagesQueue.enqueue(() => this.readMessage(user, topic));
@@ -554,7 +383,7 @@ export class SwarmChat {
 
       let currIndex = user.index;
       if (user.index === -1) {
-        this.logger.info("No index found! (user.index in readMessage)");
+        console.info("No index found! (user.index in readMessage)");
         const { latestIndex, nextIndex } = await this.utils.getLatestFeedIndex(
           this.bee,
           topic,
@@ -608,7 +437,7 @@ export class SwarmChat {
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes("timeout")) {
-          this.logger.info(
+          console.info(
             `Timeout of ${this.MAX_TIMEOUT} exceeded for readMessage.`
           );
         } else {
@@ -644,7 +473,7 @@ export class SwarmChat {
           this.readMessagesForAll(topic),
           this.mInterval
         );
-        this.logger.info(
+        console.info(
           `Increased message fetch interval to ${this.mInterval} ms`
         );
       }
@@ -657,7 +486,7 @@ export class SwarmChat {
           this.readMessagesForAll(topic),
           this.mInterval
         );
-        this.logger.info(
+        console.info(
           `Decreased message fetch interval to ${
             this.mInterval - this.F_STEP
           } ms`
@@ -744,9 +573,7 @@ export class SwarmChat {
   }
 
   private handleError(errObject: ErrorObject) {
-    this.logger.error(
-      `Error in ${errObject.context}: ${errObject.error.message}`
-    );
+    console.error(`Error in ${errObject.context}: ${errObject.error.message}`);
     this.emitter.emit(EVENTS.ERROR, errObject);
     if (errObject.throw) {
       throw new Error(` Error in ${errObject.context}`);
@@ -776,8 +603,6 @@ export class SwarmChat {
       });
       return;
     }
-
-    this.logger = pino({ level: newLogLevel });
   }
 
   /**
@@ -798,28 +623,5 @@ export class SwarmChat {
       newlyResigeredUsers: this.newlyRegisteredUsers,
       requestCount: this.reqCount,
     };
-  }
-
-  async host(roomTopic: string, stamp: BatchId) {
-    const isNode =
-      typeof window === "undefined" && typeof global !== "undefined";
-    if (!isNode) {
-      this.handleError({
-        error: new Error(
-          "This function can only be called in Node.js environment"
-        ),
-        context: "host",
-        throw: true,
-      });
-    }
-
-    const identity = ethers.Wallet.createRandom();
-
-    await this.initChatRoom(roomTopic, stamp);
-    this.startMessageFetchProcess(roomTopic);
-
-    do {
-      await this.utils.sleep(5000);
-    } while (true);
   }
 }

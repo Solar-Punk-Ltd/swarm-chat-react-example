@@ -102,7 +102,7 @@ export function mineResourceId(
 }
 
 mineResourceId(
-  "http://65.108.40.58:1633",
+  "http://65.108.40.58:1733",
   "08b35489c8971aba284b8872153cd365e3fb2222aed9c546a3c8395c09e127cd" as BatchId,
   "62c698c418fc012be22b4fa739362882ae21e21b2bdb7edbb16728685809a272",
   "DOOMSDAYTOPIC"

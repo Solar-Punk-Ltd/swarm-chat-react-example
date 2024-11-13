@@ -9,14 +9,13 @@ import { LikeMessage, MessageWithThread, ThreadId } from "../types/message";
 import InputLoading from "../../components/ChatInput/InputLoading/InputLoading";
 import ChatHeader from "../../components/ChatHeader/ChatHeader";
 import NavigationHeader from "../../components/NavigationHeader/NavigationHeader";
-import { useLocation } from "react-router-dom";
 import FilteredMessages from "../../components/FilteredMessages/FilteredMessages";
 import { MINUTE } from "../../libs/constants";
 
 interface ChatProps {
   title: string | undefined;
-  topic: string | undefined;
-  privKey: string;
+  topic: string;
+  wallet: Wallet;
   stamp: BatchId;
   nickname: string;
   gsocResourceId: string;
@@ -29,7 +28,7 @@ interface ChatProps {
 const Chat: React.FC<ChatProps> = ({
   title,
   topic,
-  privKey,
+  wallet,
   stamp,
   nickname,
   gsocResourceId,
@@ -37,8 +36,10 @@ const Chat: React.FC<ChatProps> = ({
   activeNumber,
   backAction,
 }) => {
-  const location = useLocation();
   const chat = useRef<SwarmChat | null>(null);
+  const keepMeAlive = useRef<NodeJS.Timer | null>(null);
+  /*   const currentThreadRef = useRef(currentThread); */
+
   const [allMessages, setAllMessages] = useState<MessageData[]>([]);
   const [beingSentMessages, setBeingSentMessages] = useState<
     MessageWithThread[]
@@ -48,41 +49,10 @@ const Chat: React.FC<ChatProps> = ({
   );
   const [currentThread, setCurrentThread] = useState<ThreadId | null>(null);
   const [chatLoaded, setChatLoaded] = useState<boolean>(false);
-  const currentThreadRef = useRef(currentThread);
-  const wallet = new Wallet(privKey);
+
   const ownAddress = wallet.address as EthAddress;
   const modal = true;
   // Now that we have 'title', we could calculate 'topic' here. Only problem is that it might be undefined.
-
-  const init = async () => {
-    if (!topic) return;
-    // Initialize the SwarmDecentralizedChat library
-    const newChat = new SwarmChat({
-      url: process.env.BEE_API_URL,
-      gateway: gateway || process.env.GATEWAY, // this shouldn't bee process.env.GATEWAY, each GSOC-node has it's own overlay address
-      gsocResourceId,
-      logLevel: "error",
-      usersFeedTimeout: 5000, // this might or might not help us, if we need to wait 10s to wait, that might add to the delay
-      messageCheckInterval: 1600, // We might want to reduce this number to 1000 or 800
-      messageFetchMin: 1600, // same as above
-      //  prettier: undefined
-    });
-
-    // Load users (first time when entering app)
-    newChat
-      .initUsers(topic)
-      .then(() => console.info(`initUsers was successful`))
-      .catch((err) => console.error(`initUsers error: ${err.error}`));
-
-    const { on } = newChat.getChatActions();
-    // on(EVENTS.RECEIVE_MESSAGE, (data) => setAllMessages([...data]));
-
-    chat.current = newChat;
-    // chat.current.startMessageFetchProcess(topic);
-    console.info("Message fetch process started.");
-    chat.current.startUserFetchProcess(topic);
-    setChatLoaded(true);
-  };
 
   const resendStuckMessages = async () => {
     if (!topic) return;
@@ -111,7 +81,7 @@ const Chat: React.FC<ChatProps> = ({
           topic,
           newlyConstructedMessage,
           stamp,
-          privKey
+          wallet.privateKey
         );
         console.log("sResult ", sResult);
       } catch (error) {
@@ -120,22 +90,22 @@ const Chat: React.FC<ChatProps> = ({
     }
   };
 
-  useEffect(() => {
-    resendStuckMessages();
+  // useEffect(() => {
+  //   resendStuckMessages();
 
-    const messageIds = allMessages.map(
-      (msg) => (msg.message as unknown as MessageWithThread).messageId
-    );
-    const newBeingSent = beingSentMessages.filter(
-      (message) => !messageIds.includes(message.messageId)
-    );
-    setBeingSentMessages(newBeingSent);
-  }, [allMessages]);
+  //   const messageIds = allMessages.map(
+  //     (msg) => (msg.message as unknown as MessageWithThread).messageId
+  //   );
+  //   const newBeingSent = beingSentMessages.filter(
+  //     (message) => !messageIds.includes(message.messageId)
+  //   );
+  //   setBeingSentMessages(newBeingSent);
+  // }, [allMessages]);
 
-  useEffect(() => {
-    const finalMessages = filterMessages(allMessages);
-    setVisibleMessages([...finalMessages, ...beingSentMessages]);
-  }, [allMessages, beingSentMessages]);
+  // useEffect(() => {
+  //   const finalMessages = filterMessages(allMessages);
+  //   setVisibleMessages([...finalMessages, ...beingSentMessages]);
+  // }, [allMessages, beingSentMessages]);
 
   const filterMessages = (data: MessageData[]): MessageWithThread[] => {
     const threadCapableMessages: MessageWithThread[] = [];
@@ -190,45 +160,69 @@ const Chat: React.FC<ChatProps> = ({
     }
 
     let filteredMessages = [];
-    if (currentThreadRef.current) {
-      filteredMessages = threadCapableMessages.filter(
-        (msg) =>
-          msg.parent === currentThreadRef.current ||
-          msg.threadId === currentThreadRef.current
-      );
-    } else {
-      filteredMessages = threadCapableMessages.filter(
-        (msg) => msg.parent === null
-      );
-    }
+    // if (currentThreadRef.current) {
+    //   filteredMessages = threadCapableMessages.filter(
+    //     (msg) =>
+    //       msg.parent === currentThreadRef.current ||
+    //       msg.threadId === currentThreadRef.current
+    //   );
+    // } else {
+    //   filteredMessages = threadCapableMessages.filter(
+    //     (msg) => msg.parent === null
+    //   );
+    // }
 
-    const withoutDuplicates = Array.from(
-      new Map(filteredMessages.map((item) => [item.messageId, item])).values()
-    );
+    // const withoutDuplicates = Array.from(
+    //   new Map(filteredMessages.map((item) => [item.messageId, item])).values()
+    // );
 
-    return withoutDuplicates;
+    return [];
   };
 
   useEffect(() => {
-    if (!chat.current) init();
+    if (!chat.current) {
+      const newChat = new SwarmChat({
+        gsocResourceId,
+        url: "http://65.108.40.58:1733",
+        gateway: gateway || process.env.GATEWAY,
+        logLevel: "error",
+        usersFeedTimeout: 5000,
+        messageCheckInterval: 1600,
+        messageFetchMin: 1600,
+      });
+      chat.current = newChat;
+
+      newChat.listenToNewSubscribers(topic, stamp, gsocResourceId);
+      keepMeAlive.current = setInterval(() => {
+        newChat.keepMeRegistered(topic, {
+          address: wallet.address as EthAddress,
+          stamp,
+          nick: nickname,
+          key: wallet.privateKey,
+        });
+      }, 5000);
+
+      setChatLoaded(true);
+    }
 
     return () => {
       console.info("Chat cleanup...", chat.current);
+      clearInterval(keepMeAlive.current as NodeJS.Timer);
+      keepMeAlive.current = null;
       chat.current?.stopMessageFetchProcess();
-      chat.current?.stopUserFetchProcess();
       chat.current = null;
       console.info("Chat cleanup done.");
     };
   }, []);
 
-  useEffect(() => {
-    setVisibleMessages([]);
-    setBeingSentMessages([]);
-    currentThreadRef.current = currentThread;
-    const newlyFilteredMessages = filterMessages(allMessages);
+  // useEffect(() => {
+  //   setVisibleMessages([]);
+  //   setBeingSentMessages([]);
+  //   currentThreadRef.current = currentThread;
+  //   const newlyFilteredMessages = filterMessages(allMessages);
 
-    setVisibleMessages([...newlyFilteredMessages]);
-  }, [currentThread]);
+  //   setVisibleMessages([...newlyFilteredMessages]);
+  // }, [currentThread]);
 
   if (!topic) {
     return (
@@ -244,7 +238,7 @@ const Chat: React.FC<ChatProps> = ({
       <div className="chat-page__header">
         <NavigationHeader
           backgroundColor="#F1F2F4"
-          to={location.pathname}
+          to={"/"}
           saveQuestionBeforeLeave={true}
           handlerInCaseOfSave={
             currentThread ? () => setCurrentThread(null) : backAction
@@ -266,7 +260,7 @@ const Chat: React.FC<ChatProps> = ({
             chat={chat.current}
             topic={topic}
             stamp={stamp}
-            privKey={privKey}
+            privKey={wallet.privateKey}
             currentThread={currentThread}
             setThreadId={setCurrentThread}
             key={`${currentThread}-${allMessages.length}`}
@@ -278,7 +272,7 @@ const Chat: React.FC<ChatProps> = ({
             nickname={nickname}
             topic={topic}
             stamp={stamp}
-            privKey={privKey}
+            privKey={wallet.privateKey}
             currentThread={currentThread}
             setBeingSentMessages={setBeingSentMessages}
             key={topic}

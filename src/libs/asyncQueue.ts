@@ -1,4 +1,3 @@
-import pino from "pino";
 import { FIRST_SEGMENT_INDEX, HEX_RADIX } from "./constants";
 import { ErrorObject } from "./types";
 
@@ -14,7 +13,6 @@ export class AsyncQueue {
   private maxParallel: number;
 
   private handleError: (errObject: ErrorObject) => void;
-  private logger: pino.Logger;
 
   constructor(
     settings: {
@@ -23,8 +21,7 @@ export class AsyncQueue {
       clearWaitTime?: number;
       max?: number;
     } = {},
-    handleError: (errObject: ErrorObject) => void,
-    logger: pino.Logger
+    handleError: (errObject: ErrorObject) => void
   ) {
     this.index = settings.index || FIRST_SEGMENT_INDEX;
     this.waitable = settings.waitable || false;
@@ -32,7 +29,6 @@ export class AsyncQueue {
     this.maxParallel = settings.max || 5;
 
     this.handleError = handleError;
-    this.logger = logger;
   }
 
   // Executes promises from the AsyncQueue, will execute maxParallel count parallel requests
@@ -90,14 +86,14 @@ export class AsyncQueue {
     if (this.maxParallel + 1 <= limit) {
       this.maxParallel++;
     }
-    this.logger.info("Max parallel request set to ", this.maxParallel);
+    console.info("Max parallel request set to ", this.maxParallel);
   }
 
   // Decrease the number of maximum parallel requests
   decreaseMax() {
     if (this.maxParallel > 1) {
       this.maxParallel--;
-      this.logger.info("Max parallel request set to ", this.maxParallel);
+      console.info("Max parallel request set to ", this.maxParallel);
     }
   }
 
