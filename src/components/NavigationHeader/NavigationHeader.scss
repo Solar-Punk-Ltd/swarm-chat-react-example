@@ -1,0 +1,26 @@
+.navigation-header {
+  display: flex;
+  height: 32px;
+  width: fit-content;
+  cursor: pointer;
+  gap: 10px;
+  align-items: center;
+  padding: 0px 16px;
+  padding-top: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.navigation-header__text {
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.navigation-header__link {
+  display: flex;
+}
+
+.navigation-header__wrapper {
+  width: 100%;
+}
