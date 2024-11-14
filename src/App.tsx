@@ -34,7 +34,7 @@ function App() {
         topic={"DOOMSDAYTOPIC"}
         wallet={wallet}
         stamp={
-          "611e560d8ab80610fd715b63ce49019d76dc02b90c78e4b4e7c2958fa161d877" as BatchId
+          "14454d7e3732ce2c7531d11f0d4b01d4986c94f41cc6ce2b42cfac4abecd7ef6" as BatchId
         }
         nickname={"superman"}
         gsocResourceId={

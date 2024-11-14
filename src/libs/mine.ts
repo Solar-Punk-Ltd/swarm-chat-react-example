@@ -1,8 +1,8 @@
 // import { ethers, BytesLike, Wallet, hexlify } from "ethers";
-import { InformationSignal } from "@anythread/gsoc";
+import { InformationSignal } from "@solarpunkltd/gsoc";
 import { BatchId } from "@ethersphere/bee-js";
 import { Bytes, PrefixedHexString } from "./types";
-import { HexString } from "@anythread/gsoc/dist/types";
+import { HexString } from "@solarpunkltd/gsoc/dist/types";
 
 function bytesToHex<Length extends number = number>(
   bytes: Uint8Array,

@@ -19,7 +19,7 @@ import {
 } from "./types";
 
 import { EVENTS, MINUTE, SECOND } from "./constants";
-import { HexString } from "@anythread/gsoc/dist/types";
+import { HexString } from "@solarpunkltd/gsoc/dist/types";
 
 /**
  * Swarm Decentralized Chat
@@ -27,7 +27,6 @@ import { HexString } from "@anythread/gsoc/dist/types";
 export class SwarmChat {
   /** Variables that will be constant for this SwarmChat instance */
   private USERS_FEED_TIMEOUT: number; // Timeout when writing UsersFeedCommit
-  private REMOVE_INACTIVE_USERS_INTERVAL = 1 * MINUTE;
   private IDLE_TIME = 1 * MINUTE; // User will be removed from readMessage loop after this time, until rejoin
   private USER_LIMIT = 20; // Maximum active users
 
@@ -67,7 +66,6 @@ export class SwarmChat {
   private userActivityTable: UserActivity = {}; // Used to remove inactive users
   private newlyRegisteredUsers: UserWithIndex[] = []; // keep track of fresh users
   private reqCount = 0; // Diagnostics only
-  //private prettyStream = null;
   private utils: SwarmChatUtils;
 
   private eventStates: Record<string, boolean> = {
@@ -90,8 +88,6 @@ export class SwarmChat {
     this.emitter = eventEmitter || new EventEmitter();
 
     this.USERS_FEED_TIMEOUT = settings.usersFeedTimeout || 8 * SECOND; // Can adjust UsersFeedCommit write timeout, but higher values might cause SocketHangUp in Bee
-    this.REMOVE_INACTIVE_USERS_INTERVAL =
-      settings.removeInactiveInterval || 1 * MINUTE; // How often run removeIdleUsers
     this.IDLE_TIME = settings.idleTime || 1 * MINUTE; // Can adjust idle time, after that, usser is inactive (messages not polled)
     this.USER_LIMIT = settings.userLimit || 20; // Overwrites IDLE_TIME, maximum active users
 

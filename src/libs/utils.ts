@@ -1,6 +1,5 @@
 import { ethers, BytesLike, Wallet, hexlify } from "ethers";
-import { InformationSignal } from "@anythread/gsoc";
-import pino from "pino";
+import { InformationSignal } from "@solarpunkltd/gsoc";
 import {
   BatchId,
   Bee,
@@ -25,8 +24,8 @@ import {
   UserWithIndex,
 } from "./types";
 import { CONSENSUS_ID, EVENTS, HEX_RADIX } from "./constants";
-import { HexString } from "@anythread/gsoc/dist/types";
-import { SingleOwnerChunk } from "@anythread/gsoc/dist/soc";
+import { HexString } from "@solarpunkltd/gsoc/dist/types";
+import { SingleOwnerChunk } from "@solarpunkltd/gsoc/dist/soc";
 import { FetchFeedUpdateResponse } from "@ethersphere/bee-js/dist/types/modules/feed";
 
 export class SwarmChatUtils {
