@@ -132,15 +132,6 @@ export class SwarmChat {
         );
       }
 
-      const alreadyRegistered = this.users.find(
-        (user) => user.address === this.ownAddress
-      );
-
-      if (alreadyRegistered) {
-        console.info("User already registered");
-        return;
-      }
-
       const timestamp = Date.now();
       const signature = (await wallet.signMessage(
         JSON.stringify({ username: this.nickname, address, timestamp })
@@ -184,7 +175,6 @@ export class SwarmChat {
 
   private userRegistrationOnGsoc(gsocMessage: string) {
     try {
-      console.log("READ", gsocMessage);
       const user: UserWithIndex = {
         ...(JSON.parse(gsocMessage) as unknown as User),
         index: -1,
@@ -199,10 +189,15 @@ export class SwarmChat {
         this.users
       );
 
+      const now = Date.now();
+      let newUsers = [...this.users];
+      newUsers = newUsers.filter((u) => now - u.timestamp <= 30000);
+
       if (!this.isUserRegistered(user.address)) {
-        const newList = [...this.users, user];
-        this.setUsers(newList);
+        newUsers = [...newUsers, user];
       }
+
+      this.setUsers(newUsers);
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,

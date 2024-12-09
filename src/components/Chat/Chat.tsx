@@ -50,7 +50,7 @@ const Chat: React.FC<ChatProps> = ({
       chat.current = newChat;
 
       newChat.listenToNewSubscribers();
-      newChat.keepUserAlive();
+      newChat.startKeepMeAliveProcess();
       newChat.startMessagesFetchProcess();
 
       const { on } = newChat.getChatActions();
