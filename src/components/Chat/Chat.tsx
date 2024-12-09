@@ -19,10 +19,6 @@ interface ChatProps {
   stamp: BatchId;
   nickname: string;
   gsocResourceId: string;
-  gateway?: string;
-  topMenuColor?: string;
-  activeNumber?: number;
-  backAction: () => void | undefined | null;
 }
 
 const Chat: React.FC<ChatProps> = ({

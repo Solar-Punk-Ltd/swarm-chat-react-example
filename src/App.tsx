@@ -24,9 +24,6 @@ function App() {
         }
         nickname="superman"
         gsocResourceId="0115000000000000000000000000000000000000000000000000000000000000"
-        gateway="044607732392bd78beead28ba5f1bce71356a376ffe2c50ad51a844a179028f1"
-        backAction={() => {}}
-        activeNumber={0}
       />
     </div>
   );
