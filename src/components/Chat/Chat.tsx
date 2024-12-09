@@ -123,7 +123,7 @@ const Chat: React.FC<ChatProps> = ({
 
       {chatLoaded && chat.current ? (
         <>
-          <Messages messages={allMessages} nickname={nickname} />
+          <Messages messages={allMessages} ownAddress={wallet.address} />
           <ChatInput sendMessageToSwarm={sendMessageToSwarm} />
         </>
       ) : (

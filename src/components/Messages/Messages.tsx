@@ -1,21 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import Message from "./Message/Message";
+import { VisibleMessage } from "../../libs/types";
+
+import { Message } from "./Message/Message";
 
 import "./Messages.scss";
 
 interface MessagesProps {
-  messages: any[];
-  nickname: string;
+  messages: VisibleMessage[];
+  ownAddress: string;
 }
 
-export const Messages: React.FC<MessagesProps> = ({ messages, nickname }) => {
+export const Messages: React.FC<MessagesProps> = ({ messages, ownAddress }) => {
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const [autoscroll, setAutoscroll] = useState(true);
 
   const handleScroll = () => {
     if (chatBodyRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatBodyRef.current;
+
       if (scrollTop + clientHeight < scrollHeight) {
         setAutoscroll(false);
       } else {
@@ -53,7 +56,7 @@ export const Messages: React.FC<MessagesProps> = ({ messages, nickname }) => {
   return (
     <div className="messages" ref={chatBodyRef}>
       {messages.map((msg) => (
-        <Message key={msg.id} data={msg} nickname={nickname} />
+        <Message key={msg.id} data={msg} ownAddress={ownAddress} />
       ))}
     </div>
   );

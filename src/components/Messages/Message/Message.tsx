@@ -2,22 +2,23 @@ import React from "react";
 import clsx from "clsx";
 
 import { createMonogram, formatTime } from "../../utils/helpers";
+import { VisibleMessage } from "../../../libs/types";
 
 import AvatarMonogram from "../../AvatarMonogram/AvatarMonogram";
 
 import "./Message.scss";
 
 interface MessageProps {
-  data: any;
-  nickname: string;
+  data: VisibleMessage;
+  ownAddress: string;
 }
 
-const Message: React.FC<MessageProps> = ({ data, nickname }) => {
-  const actualUser = localStorage.getItem("username");
+export const Message: React.FC<MessageProps> = ({ data, ownAddress }) => {
+  const isActualUser = data.address === ownAddress;
 
   return (
     <div
-      className={clsx("message", { own: actualUser === nickname })}
+      className={clsx("message", { own: isActualUser })}
       style={{
         opacity: data.sent ? 1 : 0.3,
         color: data.error ? "red" : "black",
@@ -26,15 +27,15 @@ const Message: React.FC<MessageProps> = ({ data, nickname }) => {
       <div className="message__left-side">
         <AvatarMonogram
           letters={createMonogram(data.username)}
-          color={actualUser === nickname ? "#333333" : "#4A2875"}
-          backgroundColor={actualUser === nickname ? "#4A287533" : "#F7F8FA"}
+          color={isActualUser ? "#333333" : "#4A2875"}
+          backgroundColor={isActualUser ? "#4A287533" : "#F7F8FA"}
         />
       </div>
 
       <div className="message__right-side">
         <div
           className={clsx("message__right-side__name", {
-            own: actualUser === nickname,
+            own: isActualUser,
           })}
         >
           {data.username} &nbsp;
@@ -45,7 +46,7 @@ const Message: React.FC<MessageProps> = ({ data, nickname }) => {
 
         <p
           className={clsx("message__right-side__text", {
-            own: actualUser === nickname,
+            own: isActualUser,
           })}
         >
           {data.message}
@@ -54,5 +55,3 @@ const Message: React.FC<MessageProps> = ({ data, nickname }) => {
     </div>
   );
 };
-
-export default Message;

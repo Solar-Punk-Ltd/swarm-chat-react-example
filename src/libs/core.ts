@@ -322,6 +322,7 @@ export class SwarmChat {
       await feedWriter.upload(this.stamp, msgData.reference, {
         index: this.ownIndex,
       });
+
       console.log("Message sent successfully");
     } catch (error) {
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
