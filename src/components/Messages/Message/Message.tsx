@@ -1,76 +1,24 @@
-import React, { useState } from "react";
+import React from "react";
 import clsx from "clsx";
-import "./Message.scss";
-import AvatarMonogram from "../../AvatarMonogram/AvatarMonogram";
-import LikeIcon from "../../icons/LikeIcon/LikeIcon";
+
 import { createMonogram, formatTime } from "../../utils/helpers";
-import { MessageWithThread, ThreadId } from "../../types/message";
-import { EthAddress, MessageData, SwarmChat } from "../../../libs";
-import { BatchId } from "@ethersphere/bee-js";
-import LikeIconFilled from "../../icons/LikeIconFilled/LikeIconFilled";
+
+import AvatarMonogram from "../../AvatarMonogram/AvatarMonogram";
+
+import "./Message.scss";
 
 interface MessageProps {
-  data: MessageWithThread;
+  data: any;
   nickname: string;
-  ownAddress: EthAddress;
-  chat: SwarmChat;
-  topic: string;
-  stamp: BatchId;
-  privKey: string;
-  currentThread: ThreadId | null;
-  threadId: ThreadId | null;
-  parent: ThreadId | null;
-  setThreadId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-const Message: React.FC<MessageProps> = ({
-  data,
-  nickname,
-  ownAddress,
-  chat,
-  topic,
-  stamp,
-  privKey,
-  currentThread,
-  threadId,
-  parent,
-  setThreadId,
-}) => {
-  const [likeLoading, setLikeLoading] = useState<boolean>(false);
+const Message: React.FC<MessageProps> = ({ data, nickname }) => {
   const actualUser = localStorage.getItem("username");
-
-  const likeMessage = async () => {
-    setLikeLoading(true);
-
-    const messageObj: MessageData = {
-      message: JSON.stringify({
-        like: data.messageId,
-      }),
-      timestamp: Date.now(),
-      username: nickname,
-      address: ownAddress,
-    };
-
-    const rep = await chat.sendMessage(
-      ownAddress,
-      topic,
-      messageObj,
-      stamp,
-      privKey
-    );
-    console.log("Like message ref: ", rep);
-  };
-
-  const likeCount = Object.values(data.likeTable).filter(
-    (liked) => liked
-  ).length; // Count truthy values
-  const iLiked = data.likeTable[ownAddress];
 
   return (
     <div
       className={clsx("message", { own: actualUser === nickname })}
       style={{
-        marginLeft: parent ? "32px" : undefined,
         opacity: data.beingSent ? 0.3 : 1,
       }}
     >
@@ -101,43 +49,6 @@ const Message: React.FC<MessageProps> = ({
         >
           {data.message}
         </p>
-
-        <div
-          className={clsx("message__right-side__message-controls", {
-            own: actualUser === nickname,
-          })}
-          onClick={() => null}
-        >
-          <div className="message__right-side__message-controls__number">
-            <b>{likeCount ? likeCount : ""}</b>
-          </div>
-          <button
-            className="message__right-side__message-controls_like"
-            disabled={data.beingSent}
-            onClick={likeMessage}
-          >
-            {likeLoading ? (
-              <div className="message__right-side__message-controls_like_loading"></div>
-            ) : iLiked ? (
-              <LikeIconFilled color={"black"} />
-            ) : (
-              <LikeIcon fillColor={"#FFFF00"} />
-            )}
-          </button>
-
-          {!currentThread && !data.beingSent && (
-            <p
-              className={
-                data.replyCount
-                  ? "message__right-side__message-controls_reply message__right-side__message-controls_reply__has-reply"
-                  : "message__right-side__message-controls_reply"
-              }
-              onClick={() => setThreadId(threadId)}
-            >
-              {data.replyCount ? `${data.replyCount} Replies` : "Reply"}
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );

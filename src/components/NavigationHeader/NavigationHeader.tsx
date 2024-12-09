@@ -10,7 +10,7 @@ interface NavigationHeaderProps {
   handlerInCaseOfSave?: () => void;
 }
 
-const NavigationHeader: React.FC<NavigationHeaderProps> = ({
+export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   backgroundColor,
   to,
   toText,
@@ -50,5 +50,3 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
     </div>
   );
 };
-
-export default NavigationHeader;

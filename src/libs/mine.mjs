@@ -1,15 +1,9 @@
-// import { ethers, BytesLike, Wallet, hexlify } from "ethers";
-import { InformationSignal } from "@solarpunkltd/gsoc";
-import { BatchId } from "@ethersphere/bee-js";
-import { Bytes, PrefixedHexString } from "./types";
-import { HexString } from "@solarpunkltd/gsoc/dist/types";
+// const { InformationSignal } = require("@solarpunkltd/gsoc");
+import { InformationSignal } from "@anythread/gsoc";
 
-function bytesToHex<Length extends number = number>(
-  bytes: Uint8Array,
-  len?: Length
-): HexString<Length> {
-  const hexByte = (n: number) => n.toString(16).padStart(2, "0");
-  const hex = Array.from(bytes, hexByte).join("") as HexString<Length>;
+function bytesToHex(bytes, len) {
+  const hexByte = (n) => n.toString(16).padStart(2, "0");
+  const hex = Array.from(bytes, hexByte).join("");
 
   if (len && hex.length !== len) {
     throw new TypeError(
@@ -20,25 +14,18 @@ function bytesToHex<Length extends number = number>(
   return hex;
 }
 
-function isHexString<Length extends number = number>(
-  s: unknown,
-  len?: number
-): s is HexString<Length> {
+function isHexString(s, len) {
   return (
     typeof s === "string" &&
     /^[0-9a-f]+$/i.test(s) &&
     (!len || s.length === len)
   );
 }
-function isPrefixedHexString(s: unknown): s is PrefixedHexString {
+function isPrefixedHexString(s) {
   return typeof s === "string" && /^0x[0-9a-f]+$/i.test(s);
 }
 
-function assertHexString<Length extends number = number>(
-  s: unknown,
-  len?: number,
-  name = "value"
-): asserts s is HexString<Length> {
+function assertHexString(s, len, name) {
   if (!isHexString(s, len)) {
     if (isPrefixedHexString(s)) {
       throw new TypeError(
@@ -52,9 +39,7 @@ function assertHexString<Length extends number = number>(
   }
 }
 
-function hexToBytes<Length extends number, LengthHex extends number = number>(
-  hex: HexString<LengthHex>
-): Bytes<Length> {
+function hexToBytes(hex) {
   assertHexString(hex);
 
   const bytes = new Uint8Array(hex.length / 2);
@@ -63,7 +48,7 @@ function hexToBytes<Length extends number, LengthHex extends number = number>(
     bytes[i] = parseInt(hexByte, 16);
   }
 
-  return bytes as Bytes<Length>;
+  return bytes;
 }
 
 /**
@@ -72,12 +57,7 @@ function hexToBytes<Length extends number, LengthHex extends number = number>(
  * @param gateway Overlay address of the gateway
  * @param topic Topic for the chat
  */
-export function mineResourceId(
-  url: string,
-  stamp: BatchId,
-  overlay: string,
-  topic: string
-): HexString<number> | null {
+function mineResourceId(url, stamp, gateway, topic) {
   try {
     const informationSignal = new InformationSignal(url, {
       consensus: {
@@ -90,7 +70,7 @@ export function mineResourceId(
     });
 
     const mineResult = informationSignal.mineResourceId(
-      hexToBytes(overlay),
+      hexToBytes(gateway),
       12
     );
 
@@ -101,9 +81,11 @@ export function mineResourceId(
   }
 }
 
-mineResourceId(
+const result = mineResourceId(
   "http://65.108.40.58:1733",
-  "d9a89178d4aba720c4c38f62f0980cf219efcfe307d565d352668cee1a96350f" as BatchId,
+  "d9a89178d4aba720c4c38f62f0980cf219efcfe307d565d352668cee1a96350f",
   "044607732392bd78beead28ba5f1bce71356a376ffe2c50ad51a844a179028f1",
   "DOOMSDAYTOPIC"
 );
+
+console.log("result: ", result);

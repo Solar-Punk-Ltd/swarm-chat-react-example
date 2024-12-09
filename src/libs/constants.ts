@@ -12,6 +12,7 @@ export const EVENTS = {
   USER_REGISTERED: "userRegistered",
   FEED_COMMIT_HASH: "feedCommitHash",
   ERROR: "errorEvent",
+  MESSAGE_REQUEST_SENT: "messageRequestSent",
 };
 
 export const SECOND = 1000;

@@ -1,5 +1,4 @@
 import { ethers, BytesLike, Wallet, hexlify } from "ethers";
-import { InformationSignal } from "@solarpunkltd/gsoc";
 import {
   BatchId,
   Bee,
@@ -9,24 +8,21 @@ import {
   UploadResult,
   Utils,
 } from "@ethersphere/bee-js";
+import { InformationSignal } from "@solarpunkltd/gsoc";
+import { HexString } from "@solarpunkltd/gsoc/dist/types";
+import { SingleOwnerChunk } from "@solarpunkltd/gsoc/dist/soc";
+import { FetchFeedUpdateResponse } from "@ethersphere/bee-js/dist/types/modules/feed";
+
 import {
   Bytes,
   ErrorObject,
   EthAddress,
-  IdleMs,
   MessageData,
   PrefixedHexString,
   Sha3Message,
-  User,
-  UserActivity,
-  UsersFeedCommit,
-  UsersFeedResponse,
   UserWithIndex,
 } from "./types";
-import { CONSENSUS_ID, EVENTS, HEX_RADIX } from "./constants";
-import { HexString } from "@solarpunkltd/gsoc/dist/types";
-import { SingleOwnerChunk } from "@solarpunkltd/gsoc/dist/soc";
-import { FetchFeedUpdateResponse } from "@ethersphere/bee-js/dist/types/modules/feed";
+import { CONSENSUS_ID, HEX_RADIX } from "./constants";
 
 export class SwarmChatUtils {
   private handleError: (errObject: ErrorObject) => void;
@@ -35,17 +31,14 @@ export class SwarmChatUtils {
     this.handleError = handleError;
   }
 
-  // Generate an ID for the feed, that will be connected to the stream, as Users list
   generateUsersFeedId(topic: string) {
     return `${topic}_EthercastChat_Users`;
   }
 
-  // Generate an ID for the feed, that is owned by a single user, who is writing messages to the chat
   generateUserOwnedFeedId(topic: string, userAddress: EthAddress) {
     return `${topic}_EthercastChat_${userAddress}`;
   }
 
-  // Validates a User object, including incorrect type, and signature
   validateUserObject(user: any): boolean {
     try {
       if (typeof user.username !== "string")
@@ -102,28 +95,6 @@ export class SwarmChatUtils {
     return messages.sort((a, b) => a.timestamp - b.timestamp);
   }
 
-  // Remove duplicated elements from users object
-  removeDuplicateUsers(users: UserWithIndex[]): UserWithIndex[] {
-    const userMap: Record<string, UserWithIndex> = {};
-
-    users.forEach((user) => {
-      if (!userMap[user.address]) {
-        userMap[user.address] = user;
-      } else {
-        const existingUser = userMap[user.address];
-        if (
-          user.timestamp > existingUser.timestamp ||
-          (user.timestamp === existingUser.timestamp &&
-            user.index > existingUser.index)
-        ) {
-          userMap[user.address] = user;
-        }
-      }
-    });
-
-    return Object.values(userMap);
-  }
-
   // getConsensualPrivateKey will generate a private key, that is used for the Graffiti-feed (which is a public feed, for user registration)
   getConsensualPrivateKey(resource: Sha3Message) {
     if (Utils.isHexString(resource) && resource.length === 64) {
@@ -133,18 +104,15 @@ export class SwarmChatUtils {
     return Utils.keccak256Hash(resource);
   }
 
-  // getGraffitiWallet generates a Graffiti wallet, from provided private key (see getConsensualPrivateKey)
   getGraffitiWallet(consensualPrivateKey: BytesLike) {
     const privateKeyBuffer = hexlify(consensualPrivateKey);
     return new Wallet(privateKeyBuffer);
   }
 
-  // Serializes a js object, into Uint8Array
   serializeGraffitiRecord(record: Record<any, any>) {
     return new TextEncoder().encode(JSON.stringify(record));
   }
 
-  // Creates feed-index-format index, from a number
   numberToFeedIndex(index: number) {
     const bytes = new Uint8Array(8);
     const dv = new DataView(bytes.buffer);
@@ -153,14 +121,12 @@ export class SwarmChatUtils {
     return Utils.bytesToHex(bytes);
   }
 
-  // General sleep function, usage: await sleep(ms)
   sleep(delay: number) {
     return new Promise((resolve) => {
       setTimeout(resolve, delay);
     });
   }
 
-  // Increment hex string, default value is 1
   incrementHexString(hexString: string, i = 1n) {
     const num = BigInt("0x" + hexString);
     return (num + i).toString(HEX_RADIX).padStart(HEX_RADIX, "0");
@@ -368,43 +334,6 @@ export class SwarmChatUtils {
     return mostActiveUsers[randomIndex].address;
   }
 
-  // Gives back the currently active users, based on idle time and user count limit calculation
-  getActiveUsers(
-    users: UserWithIndex[],
-    userActivityTable: UserActivity,
-    idleTime: number,
-    limit: number
-  ): UserWithIndex[] {
-    const idleMs: IdleMs = {};
-    const now = Date.now();
-
-    for (const rawKey in userActivityTable) {
-      const key = rawKey as unknown as EthAddress;
-      if (!userActivityTable[key]) {
-        userActivityTable[key] = {
-          timestamp: now, // this used to be user.timestamp, but it is possibly causing a bug
-          readFails: 0,
-        };
-      }
-      idleMs[key] = now - userActivityTable[key].timestamp;
-    }
-
-    console.debug(`Users inside removeIdle:  ${users}`);
-
-    const activeUsers = users.filter((user) => {
-      return idleMs[user.address] < idleTime;
-    });
-
-    // Sort activeUsers by their last activity timestamp (most recent first)
-    const sortedActiveUsers = activeUsers.sort(
-      (a, b) =>
-        userActivityTable[b.address].timestamp -
-        userActivityTable[a.address].timestamp
-    );
-
-    return sortedActiveUsers.slice(0, limit);
-  }
-
   /** GSOC UTILS */
   private isHexString<Length extends number = number>(
     s: unknown,
@@ -581,43 +510,5 @@ export class SwarmChatUtils {
         throw: false,
       });
     }
-  }
-}
-
-// Calculates and stores average, used for request time averaging
-export class RunningAverage {
-  private maxSize: number;
-  private values: number[];
-  private sum: number;
-
-  private logger: any;
-
-  constructor(maxSize: number) {
-    this.maxSize = maxSize;
-    this.values = [];
-    this.sum = 0;
-
-    this.logger = console;
-  }
-
-  addValue(newValue: number) {
-    if (this.values.length === this.maxSize) {
-      const removedValue = this.values.shift();
-      if (removedValue !== undefined) {
-        this.sum -= removedValue;
-      }
-    }
-
-    this.values.push(newValue);
-    this.sum += newValue;
-
-    this.logger.info(`Current average:  ${this.getAverage()}`);
-  }
-
-  getAverage() {
-    if (this.values.length === 0) {
-      return 200;
-    }
-    return this.sum / this.values.length;
   }
 }
