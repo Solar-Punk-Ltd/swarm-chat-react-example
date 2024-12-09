@@ -19,7 +19,8 @@ const Message: React.FC<MessageProps> = ({ data, nickname }) => {
     <div
       className={clsx("message", { own: actualUser === nickname })}
       style={{
-        opacity: data.beingSent ? 0.3 : 1,
+        opacity: data.sent ? 1 : 0.3,
+        color: data.error ? "red" : "black",
       }}
     >
       <div className="message__left-side">

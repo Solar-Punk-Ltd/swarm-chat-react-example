@@ -52,8 +52,8 @@ export const Messages: React.FC<MessagesProps> = ({ messages, nickname }) => {
 
   return (
     <div className="messages" ref={chatBodyRef}>
-      {messages.map((msg, i) => (
-        <Message key={i} data={msg} nickname={nickname} />
+      {messages.map((msg) => (
+        <Message key={msg.id} data={msg} nickname={nickname} />
       ))}
     </div>
   );

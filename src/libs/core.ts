@@ -1,5 +1,6 @@
 import { BatchId, Bee } from "@ethersphere/bee-js";
 import { ethers, Signature } from "ethers";
+import { v4 as uuidv4 } from "uuid";
 import { HexString } from "@solarpunkltd/gsoc/dist/types";
 
 import { SwarmChatUtils } from "./utils";
@@ -33,6 +34,7 @@ export class SwarmChat {
   private stamp: BatchId;
   private nickname: string;
   private ownAddress: EthAddress;
+  private ownIndex: number = -1;
   private privateKey: string;
 
   private eventStates: Record<string, boolean> = {
@@ -275,14 +277,16 @@ export class SwarmChat {
   }
 
   public async sendMessage(message: string): Promise<void> {
+    const messageObj: MessageData = {
+      message,
+      id: uuidv4(),
+      username: this.nickname,
+      address: this.ownAddress,
+      timestamp: Date.now(),
+    };
+
     try {
       console.log("WRITE", message);
-      const messageObj: MessageData = {
-        message,
-        username: this.nickname,
-        address: this.ownAddress,
-        timestamp: Date.now(),
-      };
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_SENT, messageObj);
 
       const feedID = this.utils.generateUserOwnedFeedId(
@@ -291,21 +295,15 @@ export class SwarmChat {
       );
       const feedTopicHex = this.bee.makeFeedTopic(feedID);
 
-      let ownIndex = this.users.find(
-        (user) => user.address === this.ownAddress
-      )?.index;
-
-      if (!ownIndex) {
-        throw new Error("Own index not found for message sending!");
-      }
-
-      if (ownIndex === -1) {
+      if (this.ownIndex === -1) {
         const { nextIndex } = await this.utils.getLatestFeedIndex(
           this.bee,
           feedTopicHex,
           this.ownAddress
         );
-        ownIndex = nextIndex;
+        this.ownIndex = nextIndex;
+      } else {
+        this.ownIndex += 1;
       }
 
       const msgData = await this.utils.uploadObjectToBee(
@@ -322,11 +320,11 @@ export class SwarmChat {
       );
 
       await feedWriter.upload(this.stamp, msgData.reference, {
-        index: ownIndex,
+        index: this.ownIndex,
       });
-
       console.log("Message sent successfully");
     } catch (error) {
+      this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
       this.handleError({
         error: error as unknown as Error,
         context: `sendMessage`,

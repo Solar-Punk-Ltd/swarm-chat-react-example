@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { Wallet } from "ethers";
 import { BatchId } from "@ethersphere/bee-js";
 
-import { EthAddress, EVENTS, MessageData, SwarmChat } from "../../libs";
+import { EthAddress, EVENTS, SwarmChat } from "../../libs";
+import { VisibleMessage } from "../../libs/types";
 
 import { ChatInput } from "../../components/ChatInput/ChatInput";
 import { InputLoading } from "../../components/ChatInput/InputLoading/InputLoading";
 import { ChatHeader } from "../../components/ChatHeader/ChatHeader";
-import { NavigationHeader } from "../../components/NavigationHeader/NavigationHeader";
 import { Messages } from "../Messages/Messages";
 
 import "./Chat.scss";
@@ -32,13 +32,11 @@ const Chat: React.FC<ChatProps> = ({
   stamp,
   nickname,
   gsocResourceId,
-  activeNumber,
-  backAction,
 }) => {
   const chat = useRef<SwarmChat | null>(null);
   const allMessagesRef = useRef<any[]>([]);
 
-  const [allMessages, setAllMessages] = useState<MessageData[]>([]);
+  const [allMessages, setAllMessages] = useState<VisibleMessage[]>([]);
   const [chatLoaded, setChatLoaded] = useState<boolean>(false);
 
   useEffect(() => {
@@ -60,8 +58,48 @@ const Chat: React.FC<ChatProps> = ({
       newChat.startMessagesFetchProcess();
 
       const { on } = newChat.getChatActions();
+      on(EVENTS.MESSAGE_REQUEST_SENT, (data) => {
+        allMessagesRef.current = [
+          ...allMessagesRef.current,
+          {
+            ...data,
+            error: false,
+            sent: false,
+          },
+        ];
+        setAllMessages([...allMessagesRef.current]);
+      });
+      on(EVENTS.MESSAGE_REQUEST_ERROR, (data) => {
+        const msgIndex = allMessagesRef.current.findIndex(
+          (msg) => msg.id === data.id
+        );
+        allMessagesRef.current[msgIndex] = {
+          ...allMessagesRef.current[msgIndex],
+          error: true,
+        };
+        setAllMessages([...allMessagesRef.current]);
+      });
       on(EVENTS.RECEIVE_MESSAGE, (data) => {
-        allMessagesRef.current = [...allMessagesRef.current, data];
+        const msgIndex = allMessagesRef.current.findIndex(
+          (msg) => msg.id === data.id
+        );
+        if (msgIndex !== -1) {
+          allMessagesRef.current[msgIndex] = {
+            ...allMessagesRef.current[msgIndex],
+            error: false,
+            sent: true,
+          };
+        } else {
+          allMessagesRef.current = [
+            ...allMessagesRef.current,
+            {
+              ...data,
+              error: false,
+              sent: true,
+            },
+          ];
+        }
+
         setAllMessages([...allMessagesRef.current]);
       });
 
@@ -84,13 +122,7 @@ const Chat: React.FC<ChatProps> = ({
   return (
     <div className="chat-page">
       <div className="chat-page__header">
-        <NavigationHeader
-          backgroundColor="#F1F2F4"
-          to="/"
-          saveQuestionBeforeLeave={true}
-          handlerInCaseOfSave={backAction}
-        />
-        <ChatHeader category={title} activeVisitors={activeNumber} />
+        <ChatHeader category={title} />
       </div>
 
       {chatLoaded && chat.current ? (

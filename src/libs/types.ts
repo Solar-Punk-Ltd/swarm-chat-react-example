@@ -26,13 +26,8 @@ export interface GsocSubscribtion {
 
 export type EthAddress = HexString<typeof ETH_ADDRESS_LENGTH>;
 
-export interface UserDetails {
-  nick: string;
-  address: EthAddress;
-  key: string;
-}
-
 export interface MessageData {
+  id: string;
   message: string;
   username: string;
   address: EthAddress;
@@ -40,6 +35,7 @@ export interface MessageData {
 }
 
 export interface VisibleMessage extends MessageData {
+  error: boolean;
   sent: boolean;
 }
 
