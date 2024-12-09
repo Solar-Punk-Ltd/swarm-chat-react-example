@@ -1,4 +1,3 @@
-// import { ethers, BytesLike, Wallet, hexlify } from "ethers";
 import { InformationSignal } from "@solarpunkltd/gsoc";
 import { BatchId } from "@ethersphere/bee-js";
 import { Bytes, PrefixedHexString } from "./types";
@@ -69,7 +68,7 @@ function hexToBytes<Length extends number, LengthHex extends number = number>(
 /**
  * @param url Bee url
  * @param stamp Valid stamp
- * @param gateway Overlay address of the gateway
+ * @param overlay Overlay address of the node
  * @param topic Topic for the chat
  */
 export function mineResourceId(
