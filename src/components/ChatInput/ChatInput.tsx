@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 
-import { handleKeyDown } from "../utils/helpers";
-
 import SendIcon from "../icons/SendIcon/SendIcon";
 import { InputLoading } from "./InputLoading/InputLoading";
 
@@ -23,6 +21,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({ sendMessageToSwarm }) => {
     } finally {
       setMessage("");
       setSendMessageLoading(false);
+    }
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    key: string,
+    callback: () => void
+  ) => {
+    if (e.key === key) {
+      callback();
     }
   };
 

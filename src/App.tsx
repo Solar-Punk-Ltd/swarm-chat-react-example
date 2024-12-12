@@ -1,15 +1,11 @@
 import { useState } from "react";
-import { Wallet, hexlify } from "ethers";
-import { Utils, BatchId } from "@ethersphere/bee-js";
+import { BatchId } from "@ethersphere/bee-js";
+
+import { getWallet } from "./utils/wallet";
 
 import Chat from "./components/Chat/Chat";
 
 import "./App.css";
-
-function getWallet(input: string): Wallet {
-  const privateKey = Utils.keccak256Hash(input);
-  return new Wallet(hexlify(privateKey));
-}
 
 function App() {
   const [showUserModal, setShowUserModal] = useState<boolean>(true);
@@ -57,7 +53,7 @@ function App() {
           wallet={chatData.wallet}
           nickname={chatData.name}
           stamp={
-            "d9a89178d4aba720c4c38f62f0980cf219efcfe307d565d352668cee1a96350f" as BatchId
+            "df7e881a1e7c45abdaf31465b040c871596fd52a42e40f4b5860cfee873c5dd2" as BatchId
           }
           gsocResourceId="0115000000000000000000000000000000000000000000000000000000000000"
         />

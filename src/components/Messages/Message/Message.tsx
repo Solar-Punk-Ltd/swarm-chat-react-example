@@ -1,8 +1,9 @@
 import React from "react";
 import clsx from "clsx";
 
-import { createMonogram, formatTime } from "../../utils/helpers";
 import { VisibleMessage } from "../../../libs/types";
+import { createMonogram } from "../../../utils/common";
+import { formatTime } from "../../../utils/date";
 
 import AvatarMonogram from "../../AvatarMonogram/AvatarMonogram";
 
