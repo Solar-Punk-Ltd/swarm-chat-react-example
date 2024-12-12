@@ -2,6 +2,12 @@
   "name": "swarm-chat-react-example",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
   "dependencies": {
     "@anythread/gsoc": "^0.2.2",
     "@ethersphere/bee-js": "^6.9.1",
@@ -10,32 +16,17 @@
     "ethers": "^6.13.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0",
-    "remove": "^0.1.5",
     "sass": "^1.80.7",
-    "typescript": "^4.9.5",
-    "uuid": "^11.0.3",
-    "web-vitals": "^2.1.4"
+    "uuid": "^11.0.3"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/lodash": "^4.17.7",
-    "@types/node": "^16.18.119",
+    "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react-swc": "^3.7.1",
-    "typescript": "^4.0.0",
+    "typescript": "^4.9.5",
     "vite": "^5.4.11",
     "vite-plugin-node-polyfills": "^0.22.0"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
