@@ -6,7 +6,7 @@ import { InputLoading } from "./InputLoading/InputLoading";
 import "./ChatInput.scss";
 
 interface ChatInputProps {
-  sendMessageToSwarm: (message: string) => Promise<void>;
+  sendMessageToSwarm: (message: string) => Promise<void> | undefined;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({ sendMessageToSwarm }) => {
