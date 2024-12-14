@@ -25,7 +25,7 @@ export const useSwarmChat = ({
   const chat = useRef<SwarmChat | null>(null);
   const messageCache = useRef<VisibleMessage[]>([]);
   const [allMessages, setAllMessages] = useState<VisibleMessage[]>([]);
-  const [chatLoaded, setChatLoaded] = useState<boolean>(false);
+  const [chatLoading, setChatLoading] = useState<boolean>(true);
 
   const updateMessage = (
     id: string,
@@ -57,7 +57,7 @@ export const useSwarmChat = ({
       newChat.startKeepMeAliveProcess();
       newChat.startMessagesFetchProcess();
 
-      const { on } = newChat.getChatActions();
+      const { on } = newChat.getEmitter();
 
       on(EVENTS.MESSAGE_REQUEST_SENT, (data: VisibleMessage) => {
         messageCache.current.push({ ...data, error: false, sent: false });
@@ -86,19 +86,25 @@ export const useSwarmChat = ({
         setAllMessages([...messageCache.current]);
       });
 
-      setChatLoaded(true);
+      on(EVENTS.LOADING_INIT_USERS, (data: boolean) => {
+        setChatLoading(data);
+      });
     }
 
     return () => {
+      console.log("Cleaning up chat outter call");
       if (chat.current) {
+        console.log("Cleaning up chat when exits");
+        chat.current.getEmitter().cleanAll();
         chat.current.stopKeepMeAliveProcess();
         chat.current.stopMessagesFetchProcess();
+        chat.current.stopListenToNewSubscribers();
         chat.current = null;
       }
     };
-  }, [topic, stamp, nickname, gsocResourceId, wallet]);
+  }, []);
 
   const sendMessage = (message: string) => chat.current?.sendMessage(message);
 
-  return { chatLoaded, allMessages, sendMessage };
+  return { chatLoading, allMessages, sendMessage };
 };

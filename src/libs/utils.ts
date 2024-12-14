@@ -20,7 +20,6 @@ import {
   MessageData,
   PrefixedHexString,
   Sha3Message,
-  UserWithIndex,
 } from "./types";
 import { CONSENSUS_ID, HEX_RADIX } from "./constants";
 
@@ -307,33 +306,6 @@ export class SwarmChatUtils {
     );
   }
 
-  // selectUsersFeedCommitWriter will select a user who will write a UsersFeedCommit object to the feed
-  selectUsersFeedCommitWriter(
-    activeUsers: UserWithIndex[],
-    emitStateEvent: (event: string, value: any) => void
-  ): EthAddress {
-    const minUsersToSelect = 1;
-    const numUsersToselect = Math.max(
-      Math.ceil(activeUsers.length * 0.3),
-      minUsersToSelect
-    ); // Select top 30% of activeUsers, but minimum 1
-    const mostActiveUsers = activeUsers.slice(0, numUsersToselect); // Top 30% but minimum 3 (minUsersToSelect)
-
-    console.debug(`Most active users:  ${mostActiveUsers}`);
-    const sortedMostActiveAddresses = mostActiveUsers
-      .map((user) => user.address)
-      .sort();
-    //const seedString = sortedMostActiveAddresses.join(',');                                       // All running instances should have the same string at this time
-    //const hash = crypto.createHash('sha256').update(seedString).digest('hex');                    // Hash should be same in all computers that are in this chat
-    //emitStateEvent(EVENTS.FEED_COMMIT_HASH, hash);
-    //const randomIndex = parseInt(hash, 16) % mostActiveUsers.length;                              // They should have the same number, thus, selecting the same user
-    const randomIndex = Math.floor(
-      Math.random() * sortedMostActiveAddresses.length
-    );
-
-    return mostActiveUsers[randomIndex].address;
-  }
-
   /** GSOC UTILS */
   private isHexString<Length extends number = number>(
     s: unknown,
@@ -345,9 +317,11 @@ export class SwarmChatUtils {
       (!len || s.length === len)
     );
   }
+
   private isPrefixedHexString(s: unknown): s is PrefixedHexString {
     return typeof s === "string" && /^0x[0-9a-f]+$/i.test(s);
   }
+
   private assertHexString<Length extends number = number>(
     s: unknown,
     len?: number,
@@ -365,6 +339,7 @@ export class SwarmChatUtils {
       throw new TypeError(`${name} not valid hex string${lengthMsg}: ${s}`);
     }
   }
+
   private hexToBytes<Length extends number, LengthHex extends number = number>(
     hex: HexString<LengthHex>
   ): Bytes<Length> {
@@ -378,6 +353,7 @@ export class SwarmChatUtils {
 
     return bytes as Bytes<Length>;
   }
+
   private bytesToHex<Length extends number = number>(
     bytes: Uint8Array,
     len?: Length
@@ -400,12 +376,12 @@ export class SwarmChatUtils {
    * @param gateway Overlay address of the gateway
    * @param topic Topic for the chat
    */
-  async mineResourceId(
+  mineResourceId(
     url: string,
     stamp: BatchId,
     gateway: string,
     topic: string
-  ): Promise<HexString<number> | null> {
+  ): HexString<number> | null {
     try {
       const informationSignal = new InformationSignal(url, {
         consensus: {
@@ -433,7 +409,7 @@ export class SwarmChatUtils {
     }
   }
 
-  async subscribeToGsoc(
+  subscribeToGsoc(
     url: string,
     stamp: BatchId,
     topic: string,
@@ -458,10 +434,6 @@ export class SwarmChatUtils {
       const gsocSub = informationSignal.subscribe(
         {
           onMessage: (msg: string) => {
-            console.log(
-              "Registration object received, calling userRegisteredThroughGsoc"
-            );
-            console.log("gsoc message: ", msg);
             callback(msg);
           },
           onError: console.log,

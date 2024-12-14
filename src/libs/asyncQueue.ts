@@ -76,6 +76,7 @@ export class AsyncQueue {
     }
 
     this.isWaiting = false;
+    return false;
   }
 
   sleep(delay: number) {

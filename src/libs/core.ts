@@ -63,17 +63,14 @@ export class SwarmChat {
     console.info(`SwarmChat created, version: v0.1.8 or above`);
   }
 
-  public getChatActions() {
-    return {
-      on: this.emitter.on,
-      off: this.emitter.off,
-    };
+  public getEmitter() {
+    return this.emitter;
   }
 
-  public async listenToNewSubscribers() {
+  public listenToNewSubscribers() {
     try {
-      console.log("Listening to new subscribers");
-      this.gsocSubscribtion = await this.utils.subscribeToGsoc(
+      this.emitter.emit(EVENTS.LOADING_INIT_USERS, true);
+      this.gsocSubscribtion = this.utils.subscribeToGsoc(
         this.bee.url,
         this.stamp,
         this.topic,
@@ -86,6 +83,13 @@ export class SwarmChat {
         context: `Could not create Users feed!`,
         throw: true,
       });
+    }
+  }
+
+  public stopListenToNewSubscribers() {
+    if (this.gsocSubscribtion) {
+      this.gsocSubscribtion.close();
+      this.gsocSubscribtion = null;
     }
   }
 
@@ -156,8 +160,8 @@ export class SwarmChat {
         JSON.stringify(newUser)
       );
 
-      console.info("User registration result: ", result);
       if (!result?.payload.length) throw "Error writing User object to GSOC!";
+      console.log("keepUserAlive - User object sent successfully");
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
@@ -184,20 +188,16 @@ export class SwarmChat {
         throw new Error("User object validation failed");
       }
 
-      console.info(
-        "\n------Length of users list at userRegisteredThroughGsoc: ",
-        this.users
-      );
-
-      const now = Date.now();
-      let newUsers = [...this.users];
-      newUsers = newUsers.filter((u) => now - u.timestamp <= 30000);
+      // const now = Date.now();
+      // let newUsers = [...this.users];
+      //newUsers = newUsers.filter((u) => now - u.timestamp <= 30000);
 
       if (!this.isUserRegistered(user.address)) {
-        newUsers = [...newUsers, user];
+        const newUsers = [...this.users, user];
+        this.setUsers(newUsers);
       }
 
-      this.setUsers(newUsers);
+      console.log("userRegisteredThroughGsoc - setting users", this.users);
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
@@ -209,11 +209,12 @@ export class SwarmChat {
 
   private async readMessagesForAll() {
     const isWaiting = await this.messagesQueue.waitForProcessing();
+    console.log("readMessagesForAll - Processing messages", isWaiting);
     if (isWaiting) {
+      console.log("readMessagesForAll - Processing messages - BENT");
       return;
     }
 
-    console.log(this.users, "readMessagesForAll");
     for (const user of this.users) {
       this.messagesQueue.enqueue(() => this.readMessage(user, this.topic));
     }
@@ -221,21 +222,16 @@ export class SwarmChat {
 
   private async readMessage(user: UserWithIndex, rawTopic: string) {
     try {
-      console.log("EZAZ A USER", user);
-      console.log("EZAZ A TOPIC", rawTopic);
       const chatID = this.utils.generateUserOwnedFeedId(rawTopic, user.address);
       const topic = this.bee.makeFeedTopic(chatID);
 
       let currIndex = user.index;
       if (user.index === -1) {
-        console.info("No index found! (user.index in readMessage)");
         const { latestIndex, nextIndex } = await this.utils.getLatestFeedIndex(
           this.bee,
           topic,
           user.address
         );
-        console.log("latestIndex", latestIndex);
-        console.log("nextIndex", nextIndex);
         currIndex = latestIndex === -1 ? nextIndex : latestIndex;
       }
 
@@ -243,7 +239,7 @@ export class SwarmChat {
         "sequence",
         topic,
         user.address,
-        { timeout: 2000 }
+        { timeout: 1500 }
       );
       const recordPointer = await feedReader.download({ index: currIndex });
 
@@ -256,7 +252,6 @@ export class SwarmChat {
         new TextDecoder().decode(data)
       ) as MessageData;
 
-      console.log("CURR: ", currIndex);
       this.updateUserIndex(user.address, currIndex + 1);
 
       this.emitter.emit(EVENTS.RECEIVE_MESSAGE, messageData);
@@ -267,6 +262,10 @@ export class SwarmChat {
           context: `readMessage`,
           throw: false,
         });
+      }
+    } finally {
+      if (this.ownAddress === user.address) {
+        this.emitter.emit(EVENTS.LOADING_INIT_USERS, false);
       }
     }
   }
@@ -281,7 +280,7 @@ export class SwarmChat {
     };
 
     try {
-      console.log("WRITE", message);
+      console.log("sendMessage - CALL", message);
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_SENT, messageObj);
 
       const feedID = this.utils.generateUserOwnedFeedId(
@@ -318,7 +317,7 @@ export class SwarmChat {
         index: this.ownIndex,
       });
 
-      console.log("Message sent successfully");
+      console.log("sendMessage - Message sent successfully");
     } catch (error) {
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
       this.handleError({
@@ -367,7 +366,7 @@ export class SwarmChat {
     console.error(`Error in ${errObject.context}: ${errObject.error.message}`);
     this.emitter.emit(EVENTS.ERROR, errObject);
     if (errObject.throw) {
-      throw new Error(` Error in ${errObject.context}`);
+      throw new Error(`Error in ${errObject.context}`);
     }
   }
 }

@@ -28,7 +28,7 @@ const Chat: React.FC<ChatProps> = ({
   nickname,
   gsocResourceId,
 }) => {
-  const { chatLoaded, allMessages, sendMessage } = useSwarmChat({
+  const { chatLoading, allMessages, sendMessage } = useSwarmChat({
     topic,
     stamp,
     nickname,
@@ -43,7 +43,7 @@ const Chat: React.FC<ChatProps> = ({
         <ChatHeader category={title} />
       </div>
 
-      {chatLoaded ? (
+      {!chatLoading ? (
         <>
           <Messages messages={allMessages} ownAddress={wallet.address} />
           <ChatInput sendMessageToSwarm={sendMessage} />
