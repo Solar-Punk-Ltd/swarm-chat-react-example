@@ -13,17 +13,19 @@ import {
   EthAddress,
   GsocSubscribtion,
   MessageData,
-  User,
   UserWithIndex,
 } from "./types";
 
 import { EVENTS } from "./constants";
 export class SwarmChat {
-  private bee = new Bee("http://65.108.40.58:1733");
+  private readerBee = new Bee("http://65.108.40.58:1633");
+  private gsocBee = new Bee("http://65.108.40.58:1733");
+  private writerBee = new Bee("http://65.108.40.58:1833");
   private emitter = new EventEmitter();
 
   private messagesQueue: AsyncQueue;
-  private users: UserWithIndex[] = [];
+  private users: Record<string, UserWithIndex> = {};
+  private userIndexCache: Record<string, number> = {};
   private usersLoading = false;
   private gsocResourceId: HexString<number> = "";
   private gsocSubscribtion: GsocSubscribtion | null = null;
@@ -31,7 +33,8 @@ export class SwarmChat {
   private keepUserAliveInterval: NodeJS.Timeout | null = null;
   private utils: SwarmChatUtils;
   private topic: string;
-  private stamp: BatchId;
+  private gsocStamp: BatchId;
+  private writerStamp: BatchId;
   private nickname: string;
   private ownAddress: EthAddress;
   private ownIndex: number = -1;
@@ -44,7 +47,7 @@ export class SwarmChat {
   };
 
   constructor(settings: ChatSettings) {
-    this.bee = this.bee = new Bee(settings.url);
+    //this.bee = this.bee = new Bee(settings.url);
     this.gsocResourceId = settings.gsocResourceId || "";
     this.emitter = new EventEmitter();
 
@@ -54,7 +57,10 @@ export class SwarmChat {
       this.handleError.bind(this)
     );
 
-    this.stamp = settings.stamp;
+    this.gsocStamp =
+      "76a6c300e0af507d6fbf18c027aa3c9a1736d438c52ab7257342d169c4c11d29" as BatchId;
+    this.writerStamp =
+      "7aaab1489af2b768795247c4ae51243abff454081d6dd9089d23fce6c93939d8" as BatchId;
     this.topic = settings.topic;
     this.nickname = settings.nickname;
     this.ownAddress = settings.ownAddress;
@@ -63,16 +69,76 @@ export class SwarmChat {
     console.info(`SwarmChat created, version: v0.1.8 or above`);
   }
 
+  public stopListenToNewSubscribers() {
+    if (this.gsocSubscribtion) {
+      this.gsocSubscribtion.close();
+      this.gsocSubscribtion = null;
+    }
+  }
+
+  public startKeepMeAliveProcess() {
+    this.keepUserAliveInterval = setInterval(() => this.keepUserAlive(), 2000);
+  }
+
+  public stopKeepMeAliveProcess() {
+    if (this.keepUserAliveInterval) {
+      clearInterval(this.keepUserAliveInterval);
+      this.keepUserAliveInterval = null;
+    }
+  }
+
+  public startMessagesFetchProcess() {
+    this.fetchMessageInterval = setInterval(
+      () => this.readMessagesForAll(),
+      2000
+    );
+  }
+
+  public stopMessagesFetchProcess() {
+    if (this.fetchMessageInterval) {
+      clearInterval(this.fetchMessageInterval);
+      this.fetchMessageInterval = null;
+    }
+  }
+
+  public isUserRegistered(userAddress: EthAddress): boolean {
+    return !!this.users[userAddress];
+  }
+
   public getEmitter() {
     return this.emitter;
+  }
+
+  public async initSelfIndex() {
+    try {
+      const feedID = this.utils.generateUserOwnedFeedId(
+        this.topic,
+        this.ownAddress
+      );
+      const feedTopicHex = this.readerBee.makeFeedTopic(feedID);
+
+      const { latestIndex } = await this.utils.getLatestFeedIndex(
+        this.readerBee,
+        feedTopicHex,
+        this.ownAddress
+      );
+
+      this.ownIndex = latestIndex;
+    } catch (error) {
+      this.handleError({
+        error: error as unknown as Error,
+        context: `initSelfUserIndex`,
+        throw: false,
+      });
+    }
   }
 
   public listenToNewSubscribers() {
     try {
       this.emitter.emit(EVENTS.LOADING_INIT_USERS, true);
       this.gsocSubscribtion = this.utils.subscribeToGsoc(
-        this.bee.url,
-        this.stamp,
+        this.gsocBee.url,
+        this.gsocStamp,
         this.topic,
         this.gsocResourceId,
         this.userRegistrationOnGsoc.bind(this)
@@ -86,41 +152,59 @@ export class SwarmChat {
     }
   }
 
-  public stopListenToNewSubscribers() {
-    if (this.gsocSubscribtion) {
-      this.gsocSubscribtion.close();
-      this.gsocSubscribtion = null;
+  public async sendMessage(message: string): Promise<void> {
+    const messageObj: MessageData = {
+      id: uuidv4(),
+      username: this.nickname,
+      address: this.ownAddress,
+      timestamp: Date.now(),
+      message,
+    };
+
+    try {
+      console.log("sendMessage - CALL", message);
+      this.emitter.emit(EVENTS.MESSAGE_REQUEST_SENT, messageObj);
+
+      const feedID = this.utils.generateUserOwnedFeedId(
+        this.topic,
+        this.ownAddress
+      );
+      const feedTopicHex = this.writerBee.makeFeedTopic(feedID);
+
+      const msgData = await this.utils.uploadObjectToBee(
+        this.writerBee,
+        messageObj,
+        this.writerStamp
+      );
+      if (!msgData) throw "Could not upload message data to bee";
+
+      const feedWriter = this.writerBee.makeFeedWriter(
+        "sequence",
+        feedTopicHex,
+        this.privateKey
+      );
+
+      let nextIndex;
+      if (this.ownIndex === -1) {
+        nextIndex = 0;
+      } else {
+        nextIndex = this.ownIndex + 1;
+      }
+
+      await feedWriter.upload(this.writerStamp, msgData.reference, {
+        index: nextIndex,
+      });
+
+      this.ownIndex = nextIndex;
+      console.log("sendMessage - Message sent successfully");
+    } catch (error) {
+      this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
+      this.handleError({
+        error: error as unknown as Error,
+        context: `sendMessage`,
+        throw: false,
+      });
     }
-  }
-
-  public startKeepMeAliveProcess() {
-    this.keepUserAliveInterval = setInterval(() => this.keepUserAlive(), 5000);
-  }
-
-  public stopKeepMeAliveProcess() {
-    if (this.keepUserAliveInterval) {
-      clearInterval(this.keepUserAliveInterval);
-      this.keepUserAliveInterval = null;
-    }
-  }
-
-  public startMessagesFetchProcess() {
-    this.fetchMessageInterval = setInterval(
-      () => this.readMessagesForAll(),
-      5000
-    );
-  }
-
-  public stopMessagesFetchProcess() {
-    if (this.fetchMessageInterval) {
-      clearInterval(this.fetchMessageInterval);
-      this.fetchMessageInterval = null;
-    }
-  }
-
-  public isUserRegistered(userAddress: EthAddress): boolean {
-    const findResult = this.users.find((user) => user.address === userAddress);
-    return !!findResult;
   }
 
   public async keepUserAlive() {
@@ -141,27 +225,29 @@ export class SwarmChat {
         JSON.stringify({ username: this.nickname, address, timestamp })
       )) as unknown as Signature;
 
-      const newUser: User = {
+      const newUser = {
         address,
         timestamp,
         signature,
         username: this.nickname,
+        index: this.getOwnIndex(),
       };
+
+      console.log("keepUserAlive - User object", newUser);
 
       if (!this.utils.validateUserObject(newUser)) {
         throw new Error("User object validation failed");
       }
 
       const result = await this.utils.sendMessageToGsoc(
-        this.bee.url,
-        this.stamp,
+        this.gsocBee.url,
+        this.gsocStamp,
         this.topic,
         this.gsocResourceId,
         JSON.stringify(newUser)
       );
 
       if (!result?.payload.length) throw "Error writing User object to GSOC!";
-      console.log("keepUserAlive - User object sent successfully");
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
@@ -177,25 +263,45 @@ export class SwarmChat {
     return this.utils.orderMessages(messages);
   }
 
+  private isUserIndexRead(user: UserWithIndex) {
+    const userIndex = this.userIndexCache[user.address];
+    console.log("isUserIndexRead", userIndex);
+    console.log("userIndexcache", this.userIndexCache);
+
+    return userIndex === user.index;
+  }
+
+  private setUserIndexCache(user: UserWithIndex) {
+    this.userIndexCache[user.address] = user.index;
+  }
+
+  private getOwnIndex() {
+    return this.ownIndex;
+  }
+
+  private removeIdleUsers() {
+    const now = Date.now();
+    for (const user of Object.values(this.users)) {
+      if (now - user.timestamp > 10000) {
+        delete this.users[user.address];
+      }
+    }
+  }
+
+  private updateUsers(user: UserWithIndex) {
+    this.users[user.address] = user;
+  }
+
   private userRegistrationOnGsoc(gsocMessage: string) {
     try {
-      const user: UserWithIndex = {
-        ...(JSON.parse(gsocMessage) as unknown as User),
-        index: -1,
-      };
+      const user = JSON.parse(gsocMessage) as unknown as UserWithIndex;
 
       if (!this.utils.validateUserObject(user)) {
         throw new Error("User object validation failed");
       }
 
-      // const now = Date.now();
-      // let newUsers = [...this.users];
-      //newUsers = newUsers.filter((u) => now - u.timestamp <= 30000);
-
-      if (!this.isUserRegistered(user.address)) {
-        const newUsers = [...this.users, user];
-        this.setUsers(newUsers);
-      }
+      this.updateUsers(user);
+      this.removeIdleUsers();
 
       console.log("userRegisteredThroughGsoc - setting users", this.users);
     } catch (error) {
@@ -209,52 +315,49 @@ export class SwarmChat {
 
   private async readMessagesForAll() {
     const isWaiting = await this.messagesQueue.waitForProcessing();
-    console.log("readMessagesForAll - Processing messages", isWaiting);
     if (isWaiting) {
-      console.log("readMessagesForAll - Processing messages - BENT");
       return;
     }
 
-    for (const user of this.users) {
+    for (const user of Object.values(this.users)) {
       this.messagesQueue.enqueue(() => this.readMessage(user, this.topic));
     }
   }
 
   private async readMessage(user: UserWithIndex, rawTopic: string) {
     try {
-      const chatID = this.utils.generateUserOwnedFeedId(rawTopic, user.address);
-      const topic = this.bee.makeFeedTopic(chatID);
-
-      let currIndex = user.index;
+      console.log("readMessage called first line");
       if (user.index === -1) {
-        const { latestIndex, nextIndex } = await this.utils.getLatestFeedIndex(
-          this.bee,
-          topic,
-          user.address
-        );
-        currIndex = latestIndex === -1 ? nextIndex : latestIndex;
+        return;
+      }
+      const isIndexRead = this.isUserIndexRead(user);
+      console.log("isIndexRead", isIndexRead);
+      if (isIndexRead) {
+        return;
       }
 
-      const feedReader = this.bee.makeFeedReader(
+      console.log("ACTUAL READ");
+
+      const chatID = this.utils.generateUserOwnedFeedId(rawTopic, user.address);
+      const topic = this.readerBee.makeFeedTopic(chatID);
+
+      const feedReader = this.readerBee.makeFeedReader(
         "sequence",
         topic,
         user.address,
         { timeout: 1500 }
       );
-      const recordPointer = await feedReader.download({ index: currIndex });
+      const recordPointer = await feedReader.download({ index: user.index });
 
-      const data = await this.bee.downloadData(recordPointer.reference, {
+      const data = await this.readerBee.downloadData(recordPointer.reference, {
         headers: {
           "Swarm-Redundancy-Level": "0",
         },
       });
-      const messageData = JSON.parse(
-        new TextDecoder().decode(data)
-      ) as MessageData;
-
-      this.updateUserIndex(user.address, currIndex + 1);
+      const messageData = JSON.parse(new TextDecoder().decode(data));
 
       this.emitter.emit(EVENTS.RECEIVE_MESSAGE, messageData);
+      this.setUserIndexCache(user);
     } catch (error) {
       if (error instanceof Error) {
         this.handleError({
@@ -270,96 +373,11 @@ export class SwarmChat {
     }
   }
 
-  public async sendMessage(message: string): Promise<void> {
-    const messageObj: MessageData = {
-      message,
-      id: uuidv4(),
-      username: this.nickname,
-      address: this.ownAddress,
-      timestamp: Date.now(),
-    };
-
-    try {
-      console.log("sendMessage - CALL", message);
-      this.emitter.emit(EVENTS.MESSAGE_REQUEST_SENT, messageObj);
-
-      const feedID = this.utils.generateUserOwnedFeedId(
-        this.topic,
-        this.ownAddress
-      );
-      const feedTopicHex = this.bee.makeFeedTopic(feedID);
-
-      if (this.ownIndex === -1) {
-        const { nextIndex } = await this.utils.getLatestFeedIndex(
-          this.bee,
-          feedTopicHex,
-          this.ownAddress
-        );
-        this.ownIndex = nextIndex;
-      } else {
-        this.ownIndex += 1;
-      }
-
-      const msgData = await this.utils.uploadObjectToBee(
-        this.bee,
-        messageObj,
-        this.stamp
-      );
-      if (!msgData) throw "Could not upload message data to bee";
-
-      const feedWriter = this.bee.makeFeedWriter(
-        "sequence",
-        feedTopicHex,
-        this.privateKey
-      );
-
-      await feedWriter.upload(this.stamp, msgData.reference, {
-        index: this.ownIndex,
-      });
-
-      console.log("sendMessage - Message sent successfully");
-    } catch (error) {
-      this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
-      this.handleError({
-        error: error as unknown as Error,
-        context: `sendMessage`,
-        throw: false,
-      });
-    }
-  }
-
-  private updateUserIndex(address: EthAddress, index: number) {
-    const userIndex = this.users.findIndex((user) => user.address === address);
-    if (userIndex === -1) {
-      throw new Error("User not found in users list");
-    }
-    const newUser = { ...this.users[userIndex], index };
-    const newUsers = [...this.users];
-    newUsers[userIndex] = newUser;
-    this.setUsers(newUsers);
-  }
-
-  private setUsers(newUsers: UserWithIndex[]) {
-    let success = false;
-    do {
-      if (!this.usersLoading) {
-        this.usersLoading = true;
-        this.users = newUsers;
-        this.usersLoading = false;
-        success = true;
-      }
-    } while (!success);
-  }
-
   private emitStateEvent(event: string, value: any) {
     if (this.eventStates[event] !== value) {
       this.eventStates[event] = value;
       this.emitter.emit(event, value);
     }
-  }
-
-  public getUserCount() {
-    return this.users.length;
   }
 
   private handleError(errObject: ErrorObject) {

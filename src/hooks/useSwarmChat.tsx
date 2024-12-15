@@ -53,6 +53,7 @@ export const useSwarmChat = ({
 
       chat.current = newChat;
 
+      newChat.initSelfIndex();
       newChat.listenToNewSubscribers();
       newChat.startKeepMeAliveProcess();
       newChat.startMessagesFetchProcess();
