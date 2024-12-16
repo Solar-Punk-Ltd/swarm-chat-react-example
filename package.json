@@ -11,7 +11,7 @@
   "dependencies": {
     "@anythread/gsoc": "^0.2.2",
     "@ethersphere/bee-js": "^6.9.1",
-    "@solarpunkltd/gsoc": "^0.2.2",
+    "@solarpunkltd/gsoc": "^0.2.3",
     "clsx": "^2.1.1",
     "ethers": "^6.13.3",
     "react": "^18.3.1",

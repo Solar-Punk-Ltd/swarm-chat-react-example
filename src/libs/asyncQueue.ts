@@ -17,7 +17,7 @@ export class AsyncQueue {
     handleError: (errObject: ErrorObject) => void
   ) {
     this.waitable = settings.waitable || false;
-    this.clearWaitTime = settings.clearWaitTime || 100;
+    this.clearWaitTime = settings.clearWaitTime || 500;
     this.handleError = handleError;
   }
 

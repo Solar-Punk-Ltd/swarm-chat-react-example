@@ -433,9 +433,7 @@ export class SwarmChatUtils {
 
       const gsocSub = informationSignal.subscribe(
         {
-          onMessage: (msg: string) => {
-            callback(msg);
-          },
+          onMessage: callback,
           onError: console.log,
         },
         resourceId
@@ -472,7 +470,9 @@ export class SwarmChatUtils {
         postage: stamp,
       });
 
-      const uploadedSoc = await informationSignal.write(message, resourceId);
+      const uploadedSoc = await informationSignal.write(message, resourceId, {
+        timeout: 800,
+      });
 
       return uploadedSoc;
     } catch (error) {

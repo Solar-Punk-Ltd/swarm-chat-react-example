@@ -6,6 +6,7 @@ import { HexString } from "@solarpunkltd/gsoc/dist/types";
 import { SwarmChatUtils } from "./utils";
 import { EventEmitter } from "./eventEmitter";
 import { AsyncQueue } from "./asyncQueue";
+import { Queue } from "./queue";
 
 import {
   ChatSettings,
@@ -24,9 +25,10 @@ export class SwarmChat {
   private emitter = new EventEmitter();
 
   private messagesQueue: AsyncQueue;
+  private gsocMessagesQueue: AsyncQueue;
+  private gsocListenerQueue: Queue;
   private users: Record<string, UserWithIndex> = {};
   private userIndexCache: Record<string, number> = {};
-  private usersLoading = false;
   private gsocResourceId: HexString<number> = "";
   private gsocSubscribtion: GsocSubscribtion | null = null;
   private fetchMessageInterval: NodeJS.Timeout | null = null;
@@ -47,15 +49,20 @@ export class SwarmChat {
   };
 
   constructor(settings: ChatSettings) {
-    //this.bee = this.bee = new Bee(settings.url);
     this.gsocResourceId = settings.gsocResourceId || "";
     this.emitter = new EventEmitter();
 
     this.utils = new SwarmChatUtils(this.handleError.bind(this));
+
     this.messagesQueue = new AsyncQueue(
       { waitable: true },
       this.handleError.bind(this)
     );
+    this.gsocMessagesQueue = new AsyncQueue(
+      { waitable: true },
+      this.handleError.bind(this)
+    );
+    this.gsocListenerQueue = new Queue();
 
     this.gsocStamp =
       "76a6c300e0af507d6fbf18c027aa3c9a1736d438c52ab7257342d169c4c11d29" as BatchId;
@@ -77,7 +84,19 @@ export class SwarmChat {
   }
 
   public startKeepMeAliveProcess() {
-    this.keepUserAliveInterval = setInterval(() => this.keepUserAlive(), 2000);
+    this.keepUserAliveInterval = setInterval(
+      () => this.gsocMessagesQueue.enqueue(this.limitedKeepMeAlive.bind(this)),
+      2000
+    );
+  }
+
+  private async limitedKeepMeAlive() {
+    const isWaiting = await this.gsocMessagesQueue.waitForProcessing();
+    if (isWaiting) {
+      return;
+    }
+
+    await this.keepUserAlive();
   }
 
   public stopKeepMeAliveProcess() {
@@ -90,7 +109,7 @@ export class SwarmChat {
   public startMessagesFetchProcess() {
     this.fetchMessageInterval = setInterval(
       () => this.readMessagesForAll(),
-      2000
+      1000
     );
   }
 
@@ -141,7 +160,10 @@ export class SwarmChat {
         this.gsocStamp,
         this.topic,
         this.gsocResourceId,
-        this.userRegistrationOnGsoc.bind(this)
+        (gsocMessage: string) =>
+          this.gsocListenerQueue.enqueue(() =>
+            this.userRegistrationOnGsoc(gsocMessage)
+          )
       );
     } catch (error) {
       this.handleError({
@@ -196,6 +218,7 @@ export class SwarmChat {
       });
 
       this.ownIndex = nextIndex;
+      await this.gsocMessagesQueue.clearQueue();
       console.log("sendMessage - Message sent successfully");
     } catch (error) {
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
@@ -233,8 +256,6 @@ export class SwarmChat {
         index: this.getOwnIndex(),
       };
 
-      console.log("keepUserAlive - User object", newUser);
-
       if (!this.utils.validateUserObject(newUser)) {
         throw new Error("User object validation failed");
       }
@@ -265,9 +286,6 @@ export class SwarmChat {
 
   private isUserIndexRead(user: UserWithIndex) {
     const userIndex = this.userIndexCache[user.address];
-    console.log("isUserIndexRead", userIndex);
-    console.log("userIndexcache", this.userIndexCache);
-
     return userIndex === user.index;
   }
 
@@ -295,15 +313,14 @@ export class SwarmChat {
   private userRegistrationOnGsoc(gsocMessage: string) {
     try {
       const user = JSON.parse(gsocMessage) as unknown as UserWithIndex;
+      console.log("userRegistrationOnGsoc - User object", user);
 
       if (!this.utils.validateUserObject(user)) {
         throw new Error("User object validation failed");
       }
 
       this.updateUsers(user);
-      this.removeIdleUsers();
-
-      console.log("userRegisteredThroughGsoc - setting users", this.users);
+      //this.removeIdleUsers();
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
@@ -326,12 +343,10 @@ export class SwarmChat {
 
   private async readMessage(user: UserWithIndex, rawTopic: string) {
     try {
-      console.log("readMessage called first line");
       if (user.index === -1) {
         return;
       }
       const isIndexRead = this.isUserIndexRead(user);
-      console.log("isIndexRead", isIndexRead);
       if (isIndexRead) {
         return;
       }
