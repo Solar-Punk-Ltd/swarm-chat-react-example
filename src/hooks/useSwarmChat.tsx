@@ -62,14 +62,14 @@ export const useSwarmChat = ({
 
       on(EVENTS.MESSAGE_REQUEST_SENT, (data: VisibleMessage) => {
         messageCache.current.push({ ...data, error: false, sent: false });
-        setAllMessages([...messageCache.current]);
+        setAllMessages(newChat.orderMessages([...messageCache.current]));
       });
 
       on(EVENTS.MESSAGE_REQUEST_ERROR, (data: { id: string }) => {
         messageCache.current = updateMessage(data.id, messageCache.current, {
           error: true,
         });
-        setAllMessages([...messageCache.current]);
+        setAllMessages(newChat.orderMessages([...messageCache.current]));
       });
 
       on(EVENTS.RECEIVE_MESSAGE, (data: VisibleMessage) => {
