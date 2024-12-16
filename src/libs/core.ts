@@ -322,31 +322,35 @@ export class SwarmChat {
 
   private userRegistrationOnGsoc(gsocMessage: string) {
     try {
-      const user = JSON.parse(gsocMessage) as unknown as UserWithIndex;
+      let user: UserWithIndex;
+
+      try {
+        user = JSON.parse(gsocMessage) as UserWithIndex;
+      } catch (parseError) {
+        console.error("Invalid GSOC message format:", gsocMessage);
+        return;
+      }
+
       console.log("userRegistrationOnGsoc - User object", user);
 
-      if (this.userPunishmentCache[user.address] > 0) {
-        this.tempUser = null;
-        return;
-      }
-
       if (this.tempUser?.address === user.address) {
-        this.tempUser = null;
-        this.userPunishmentCache[user.address] = Object.keys(this.users).length;
+        this.userPunishmentCache[user.address] =
+          (this.userPunishmentCache[user.address] || 0) + 1;
         return;
       }
-
-      this.tempUser = user;
 
       if (!this.utils.validateUserObject(user)) {
-        throw new Error("User object validation failed");
+        console.warn("Invalid user object:", user);
+        return;
       }
 
       this.setUser(user);
+      this.tempUser = user;
+
       this.removeIdleUsers();
     } catch (error) {
       this.handleError({
-        error: error as unknown as Error,
+        error: error as Error,
         context: `userRegisteredThroughGsoc`,
         throw: false,
       });
