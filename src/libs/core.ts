@@ -20,12 +20,12 @@ import {
 import { EVENTS } from "./constants";
 export class SwarmChat {
   private readerBee = new Bee("http://65.108.40.58:1633");
-  private gsocBee = new Bee("http://65.108.40.58:1733");
   private writerBee = new Bee("http://65.108.40.58:1833");
+  private gsocBee = new Bee("http://65.108.40.58:1733");
+  private gsoc2Bee = new Bee("http://65.108.40.58:1933");
   private emitter = new EventEmitter();
 
   private messagesQueue: AsyncQueue;
-  private gsocMessagesQueue: AsyncQueue;
   private gsocListenerQueue: Queue;
   private users: Record<string, UserWithIndex> = {};
   private userIndexCache: Record<string, number> = {};
@@ -36,6 +36,7 @@ export class SwarmChat {
   private utils: SwarmChatUtils;
   private topic: string;
   private gsocStamp: BatchId;
+  private gsoc2Stamp: BatchId;
   private writerStamp: BatchId;
   private nickname: string;
   private ownAddress: EthAddress;
@@ -58,14 +59,12 @@ export class SwarmChat {
       { waitable: true },
       this.handleError.bind(this)
     );
-    this.gsocMessagesQueue = new AsyncQueue(
-      { waitable: true },
-      this.handleError.bind(this)
-    );
     this.gsocListenerQueue = new Queue();
 
     this.gsocStamp =
       "76a6c300e0af507d6fbf18c027aa3c9a1736d438c52ab7257342d169c4c11d29" as BatchId;
+    this.gsoc2Stamp =
+      "70c7ba0bda4679f25b3bc1ca7365b8f6c63641f27c1b83020943ae2ad6e08713" as BatchId;
     this.writerStamp =
       "7aaab1489af2b768795247c4ae51243abff454081d6dd9089d23fce6c93939d8" as BatchId;
     this.topic = settings.topic;
@@ -85,18 +84,9 @@ export class SwarmChat {
 
   public startKeepMeAliveProcess() {
     this.keepUserAliveInterval = setInterval(
-      () => this.gsocMessagesQueue.enqueue(this.limitedKeepMeAlive.bind(this)),
+      this.keepUserAlive.bind(this),
       2000
     );
-  }
-
-  private async limitedKeepMeAlive() {
-    const isWaiting = await this.gsocMessagesQueue.waitForProcessing();
-    if (isWaiting) {
-      return;
-    }
-
-    await this.keepUserAlive();
   }
 
   public stopKeepMeAliveProcess() {
@@ -218,7 +208,6 @@ export class SwarmChat {
       });
 
       this.ownIndex = nextIndex;
-      await this.gsocMessagesQueue.clearQueue();
       console.log("sendMessage - Message sent successfully");
     } catch (error) {
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
@@ -261,8 +250,8 @@ export class SwarmChat {
       }
 
       const result = await this.utils.sendMessageToGsoc(
-        this.gsocBee.url,
-        this.gsocStamp,
+        this.gsoc2Bee.url,
+        this.gsoc2Stamp,
         this.topic,
         this.gsocResourceId,
         JSON.stringify(newUser)
@@ -320,7 +309,7 @@ export class SwarmChat {
       }
 
       this.updateUsers(user);
-      //this.removeIdleUsers();
+      //this.removeIdleUsers(); todo
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
