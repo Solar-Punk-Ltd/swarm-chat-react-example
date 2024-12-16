@@ -100,7 +100,7 @@ export class SwarmChat {
   public startMessagesFetchProcess() {
     this.fetchMessageInterval = setInterval(
       () => this.readMessagesForAll(),
-      1500
+      1000
     );
   }
 
@@ -209,7 +209,7 @@ export class SwarmChat {
       this.ownIndex = nextIndex;
       // do not allow a new message till the latest is read
       while (!this.isUserIndexRead(this.ownAddress, this.ownIndex)) {
-        await this.utils.sleep(1000);
+        await this.utils.sleep(500);
       }
       console.log("sendMessage - Message sent successfully");
     } catch (error) {
@@ -326,6 +326,7 @@ export class SwarmChat {
       console.log("userRegistrationOnGsoc - User object", user);
 
       if (this.userPunishmentCache[user.address] > 0) {
+        this.tempUser = null;
         return;
       }
 
