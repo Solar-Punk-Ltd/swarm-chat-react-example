@@ -84,7 +84,7 @@ export const useSwarmChat = ({
         } else {
           messageCache.current.push({ ...data, error: false, sent: true });
         }
-        setAllMessages([...messageCache.current]);
+        setAllMessages(newChat.orderMessages([...messageCache.current]));
       });
 
       on(EVENTS.LOADING_INIT_USERS, (data: boolean) => {

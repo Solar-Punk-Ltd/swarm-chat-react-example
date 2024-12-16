@@ -89,8 +89,7 @@ export class SwarmChatUtils {
     }
   }
 
-  // Returns timesstamp ordered messages
-  orderMessages(messages: MessageData[]) {
+  orderMessages(messages: any[]) {
     return messages.sort((a, b) => a.timestamp - b.timestamp);
   }
 
@@ -471,7 +470,7 @@ export class SwarmChatUtils {
       });
 
       const uploadedSoc = await informationSignal.write(message, resourceId, {
-        timeout: 800,
+        timeout: 2000,
       });
 
       return uploadedSoc;

@@ -13,7 +13,6 @@ import {
   ErrorObject,
   EthAddress,
   GsocSubscribtion,
-  MessageData,
   UserWithIndex,
 } from "./types";
 
@@ -29,6 +28,8 @@ export class SwarmChat {
   private gsocListenerQueue: Queue;
   private users: Record<string, UserWithIndex> = {};
   private userIndexCache: Record<string, number> = {};
+  private userPunishmentCache: Record<string, number> = {};
+  private tempUser: UserWithIndex | null = null;
   private gsocResourceId: HexString<number> = "";
   private gsocSubscribtion: GsocSubscribtion | null = null;
   private fetchMessageInterval: NodeJS.Timeout | null = null;
@@ -40,7 +41,7 @@ export class SwarmChat {
   private writerStamp: BatchId;
   private nickname: string;
   private ownAddress: EthAddress;
-  private ownIndex: number = -1;
+  private ownIndex: number | null = null;
   private privateKey: string;
 
   private eventStates: Record<string, boolean> = {
@@ -99,7 +100,7 @@ export class SwarmChat {
   public startMessagesFetchProcess() {
     this.fetchMessageInterval = setInterval(
       () => this.readMessagesForAll(),
-      1000
+      1500
     );
   }
 
@@ -165,7 +166,7 @@ export class SwarmChat {
   }
 
   public async sendMessage(message: string): Promise<void> {
-    const messageObj: MessageData = {
+    const messageObj = {
       id: uuidv4(),
       username: this.nickname,
       address: this.ownAddress,
@@ -174,6 +175,10 @@ export class SwarmChat {
     };
 
     try {
+      if (this.ownIndex === null) {
+        throw new Error("Cannot send message with null index");
+      }
+
       console.log("sendMessage - CALL", message);
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_SENT, messageObj);
 
@@ -196,13 +201,7 @@ export class SwarmChat {
         this.privateKey
       );
 
-      let nextIndex;
-      if (this.ownIndex === -1) {
-        nextIndex = 0;
-      } else {
-        nextIndex = this.ownIndex + 1;
-      }
-
+      const nextIndex = this.ownIndex === -1 ? 0 : this.ownIndex + 1;
       await feedWriter.upload(this.writerStamp, msgData.reference, {
         index: nextIndex,
       });
@@ -223,6 +222,11 @@ export class SwarmChat {
     try {
       this.emitStateEvent(EVENTS.LOADING_REGISTRATION, true);
 
+      const index = this.getOwnIndex();
+      if (index === null) {
+        return;
+      }
+
       const wallet = new ethers.Wallet(this.privateKey);
       const address = wallet.address as EthAddress;
 
@@ -230,6 +234,10 @@ export class SwarmChat {
         throw new Error(
           "The provided address does not match the address derived from the private key"
         );
+      }
+
+      if (this.checkUserPunishment(address)) {
+        return;
       }
 
       const timestamp = Date.now();
@@ -241,8 +249,8 @@ export class SwarmChat {
         address,
         timestamp,
         signature,
+        index,
         username: this.nickname,
-        index: this.getOwnIndex(),
       };
 
       if (!this.utils.validateUserObject(newUser)) {
@@ -269,7 +277,7 @@ export class SwarmChat {
     }
   }
 
-  public orderMessages(messages: MessageData[]) {
+  public orderMessages(messages: any[]) {
     return this.utils.orderMessages(messages);
   }
 
@@ -289,14 +297,23 @@ export class SwarmChat {
   private removeIdleUsers() {
     const now = Date.now();
     for (const user of Object.values(this.users)) {
-      if (now - user.timestamp > 10000) {
+      if (now - user.timestamp > 30000) {
         delete this.users[user.address];
       }
     }
   }
 
-  private updateUsers(user: UserWithIndex) {
+  private setUser(user: UserWithIndex) {
     this.users[user.address] = user;
+  }
+
+  private checkUserPunishment(userAddress: string) {
+    const count = this.userPunishmentCache[userAddress];
+    if (count > 0) {
+      this.userPunishmentCache[userAddress]--;
+      return true;
+    }
+    return false;
   }
 
   private userRegistrationOnGsoc(gsocMessage: string) {
@@ -304,12 +321,24 @@ export class SwarmChat {
       const user = JSON.parse(gsocMessage) as unknown as UserWithIndex;
       console.log("userRegistrationOnGsoc - User object", user);
 
+      if (this.userPunishmentCache[user.address] > 0) {
+        return;
+      }
+
+      if (this.tempUser?.address === user.address) {
+        this.tempUser = null;
+        this.userPunishmentCache[user.address] = Object.keys(this.users).length;
+        return;
+      }
+
+      this.tempUser = user;
+
       if (!this.utils.validateUserObject(user)) {
         throw new Error("User object validation failed");
       }
 
-      this.updateUsers(user);
-      //this.removeIdleUsers(); todo
+      this.setUser(user);
+      this.removeIdleUsers();
     } catch (error) {
       this.handleError({
         error: error as unknown as Error,
