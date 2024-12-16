@@ -322,8 +322,9 @@ export class SwarmChat {
 
   private userRegistrationOnGsoc(gsocMessage: string) {
     try {
-      let user: UserWithIndex;
+      this.removeIdleUsers();
 
+      let user: UserWithIndex;
       try {
         user = JSON.parse(gsocMessage) as UserWithIndex;
       } catch (parseError) {
@@ -350,8 +351,6 @@ export class SwarmChat {
 
       this.setUser(user);
       this.tempUser = user;
-
-      this.removeIdleUsers();
     } catch (error) {
       this.handleError({
         error: error as Error,
