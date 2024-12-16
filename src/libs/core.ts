@@ -333,12 +333,13 @@ export class SwarmChat {
 
       console.log("userRegistrationOnGsoc - User object", user);
 
-      if (this.tempUser?.address === user.address) {
+      if (
+        this.tempUser?.address === user.address &&
+        Object.keys(this.users).length > 1
+      ) {
         // Only apply punishment if more than one user exists
-        if (Object.keys(this.users).length > 1) {
-          this.userPunishmentCache[user.address] =
-            (this.userPunishmentCache[user.address] || 0) + 1;
-        }
+        this.userPunishmentCache[user.address] =
+          (this.userPunishmentCache[user.address] || 0) + 1;
         return;
       }
 
