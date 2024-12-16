@@ -207,6 +207,10 @@ export class SwarmChat {
       });
 
       this.ownIndex = nextIndex;
+      // do not allow a new message till the latest is read
+      while (!this.isUserIndexRead(this.ownAddress, this.ownIndex)) {
+        await this.utils.sleep(1000);
+      }
       console.log("sendMessage - Message sent successfully");
     } catch (error) {
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
@@ -281,9 +285,9 @@ export class SwarmChat {
     return this.utils.orderMessages(messages);
   }
 
-  private isUserIndexRead(user: UserWithIndex) {
-    const userIndex = this.userIndexCache[user.address];
-    return userIndex === user.index;
+  private isUserIndexRead(userAddress: string, checkIndex: number) {
+    const targetIndex = this.userIndexCache[userAddress];
+    return targetIndex === checkIndex;
   }
 
   private setUserIndexCache(user: UserWithIndex) {
@@ -364,7 +368,7 @@ export class SwarmChat {
       if (user.index === -1) {
         return;
       }
-      const isIndexRead = this.isUserIndexRead(user);
+      const isIndexRead = this.isUserIndexRead(user.address, user.index);
       if (isIndexRead) {
         return;
       }
