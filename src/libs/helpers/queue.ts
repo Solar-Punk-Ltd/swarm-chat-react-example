@@ -53,19 +53,19 @@ export class Queue {
     this.isProcessing = false;
   }
 
-  enqueue(task: Task): void {
+  public enqueue(task: Task): void {
     this.tasks.push(task);
     this.processQueue();
   }
 
-  async clearQueue(): Promise<void> {
+  public async clearQueue(): Promise<void> {
     this.tasks = [];
     while (this.isProcessing) {
       await sleep(this.clearWaitTime);
     }
   }
 
-  async waitForProcessing(): Promise<boolean> {
+  public async waitForProcessing(): Promise<boolean> {
     if (this.isWaiting) return true;
 
     this.isWaiting = true;

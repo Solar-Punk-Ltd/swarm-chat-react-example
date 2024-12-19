@@ -52,9 +52,6 @@ function App() {
           topic={chatData.topic}
           wallet={chatData.wallet}
           nickname={chatData.name}
-          stamp={
-            "76a6c300e0af507d6fbf18c027aa3c9a1736d438c52ab7257342d169c4c11d29" as BatchId
-          }
           gsocResourceId="e09b760000000000000000000000000000000000000000000000000000000000"
         />
       )}

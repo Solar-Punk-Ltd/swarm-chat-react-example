@@ -15,7 +15,6 @@ interface ChatProps {
   title?: string;
   topic: string;
   wallet: Wallet;
-  stamp: BatchId;
   nickname: string;
   gsocResourceId: string;
 }

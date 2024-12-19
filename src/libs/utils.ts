@@ -72,9 +72,6 @@ export class SwarmChatUtils {
     const initializedBees: InitializedBees = {};
 
     const initializeSingleBee = (beeConfig: BeeSettings): InitializedBee => {
-      if (!beeConfig.stamp) {
-        throw new Error("No postage stamp provided for the bee");
-      }
       return {
         bee: new Bee(beeConfig.url),
         stamp: beeConfig.stamp,

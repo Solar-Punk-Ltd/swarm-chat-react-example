@@ -22,7 +22,6 @@ export class SwarmChat {
   private utils = new SwarmChatUtils(this.handleError.bind(this));
 
   private bees;
-
   private messagesQueue = new Queue(
     { clearWaitTime: 200 },
     this.handleError.bind(this)
@@ -36,7 +35,7 @@ export class SwarmChat {
   private keepUserAliveTimer: NodeJS.Timeout | null = null;
   private idleUserCleanupInterval: NodeJS.Timeout | null = null;
 
-  private KEEP_ALIVE_INTERVAL_TIME = 2000;
+  private KEEP_ALIVE_INTERVAL_TIME = 2500;
   private FETCH_MESSAGE_INTERVAL_TIME = 1000;
   private IDLE_USER_CLEANUP_INTERVAL_TIME = 5000;
   private READ_MESSAGE_TIMEOUT = 1500;
@@ -113,10 +112,8 @@ export class SwarmChat {
       const bee = this.getReaderBee();
       const feedTopicHex = bee.makeFeedTopic(feedID);
 
-      const { latestIndex } = await this.utils.getLatestFeedIndex(
-        bee,
-        feedTopicHex,
-        this.ownAddress
+      const { latestIndex } = await this.utils.retryAwaitableAsync(() =>
+        this.utils.getLatestFeedIndex(bee, feedTopicHex, this.ownAddress)
       );
 
       this.ownIndex = latestIndex;
@@ -181,7 +178,6 @@ export class SwarmChat {
         throw new Error("Cannot send message with null index");
       }
 
-      console.log("sendMessage - CALL", message);
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_SENT, messageObj);
 
       const feedID = this.utils.generateUserOwnedFeedId(
@@ -191,11 +187,10 @@ export class SwarmChat {
 
       const { bee, stamp } = this.getWriterBee();
 
-      const msgData = await this.utils.uploadObjectToBee(
-        bee,
-        messageObj,
-        stamp
+      const msgData = await this.utils.retryAwaitableAsync(() =>
+        this.utils.uploadObjectToBee(bee, messageObj, stamp)
       );
+
       if (!msgData) throw "Could not upload message data to bee";
 
       const feedTopicHex = bee.makeFeedTopic(feedID);
@@ -215,7 +210,6 @@ export class SwarmChat {
       while (!this.isUserIndexRead(this.ownAddress, this.ownIndex)) {
         await sleep(200);
       }
-      console.log("sendMessage - Message sent successfully");
     } catch (error) {
       this.emitter.emit(EVENTS.MESSAGE_REQUEST_ERROR, messageObj);
       this.handleError({
@@ -349,6 +343,7 @@ export class SwarmChat {
       // if punishment is active, do not set user
       if (
         this.tempUser?.address === user.address &&
+        this.userPunishmentCache[user.address] === 0 &&
         Object.keys(this.users).length > 1
       ) {
         // Only apply punishment if more than one user exists
@@ -360,8 +355,6 @@ export class SwarmChat {
         console.warn("Invalid user object:", user);
         return;
       }
-
-      console.log("userRegistrationOnGsoc - User object", user);
 
       this.setUser(user);
       this.tempUser = user;
@@ -402,8 +395,6 @@ export class SwarmChat {
       if (isIndexRead) {
         return;
       }
-
-      console.log("ACTUAL READ");
 
       const bee = this.getReaderBee();
 
@@ -470,7 +461,7 @@ export class SwarmChat {
       return;
     }
     this.fetchMessageTimer = setInterval(
-      this.readMessagesForAll,
+      this.readMessagesForAll.bind(this),
       this.FETCH_MESSAGE_INTERVAL_TIME
     );
   }
@@ -488,7 +479,7 @@ export class SwarmChat {
       return;
     }
     this.idleUserCleanupInterval = setInterval(
-      this.removeIdleUsers,
+      this.removeIdleUsers.bind(this),
       this.IDLE_USER_CLEANUP_INTERVAL_TIME
     );
   }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Wallet } from "ethers";
 
 import { EVENTS, SwarmChat } from "../libs";
@@ -24,19 +24,6 @@ export const useSwarmChat = ({
   const [allMessages, setAllMessages] = useState<VisibleMessage[]>([]);
   const [chatLoading, setChatLoading] = useState<boolean>(true);
 
-  const updateMessage = (
-    id: string,
-    messages: VisibleMessage[],
-    updates: Partial<VisibleMessage>
-  ): VisibleMessage[] =>
-    useMemo(() => {
-      const messageIndex = messages.findIndex((msg) => msg.id === id);
-      if (messageIndex !== -1) {
-        messages[messageIndex] = { ...messages[messageIndex], ...updates };
-      }
-      return [...messages];
-    }, []);
-
   useEffect(() => {
     if (!chat.current) {
       const newChat = new SwarmChat({
@@ -50,6 +37,18 @@ export const useSwarmChat = ({
       chat.current = newChat;
 
       const { on } = newChat.getEmitter();
+
+      const updateMessage = (
+        id: string,
+        messages: VisibleMessage[],
+        updates: Partial<VisibleMessage>
+      ): VisibleMessage[] => {
+        const messageIndex = messages.findIndex((msg) => msg.id === id);
+        if (messageIndex !== -1) {
+          messages[messageIndex] = { ...messages[messageIndex], ...updates };
+        }
+        return [...messages];
+      };
 
       on(EVENTS.MESSAGE_REQUEST_SENT, (data: VisibleMessage) => {
         messageCache.current.push({ ...data, error: false, sent: false });
