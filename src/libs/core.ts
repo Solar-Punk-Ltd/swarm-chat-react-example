@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from "uuid";
 import { HexString } from "@solarpunkltd/gsoc/dist/types";
 
 import { SwarmChatUtils } from "./utils";
-import { EventEmitter } from "./eventEmitter";
-import { Queue } from "./queue";
+import { EventEmitter } from "./helpers/eventEmitter";
+import { Queue } from "./helpers/queue";
 
 import {
   BeeType,
@@ -16,7 +16,7 @@ import {
 } from "./types";
 
 import { EVENTS, SECOND } from "./constants";
-import { sleep } from "./common";
+import { sleep } from "./helpers/common";
 export class SwarmChat {
   private emitter = new EventEmitter();
   private utils = new SwarmChatUtils(this.handleError.bind(this));
@@ -76,6 +76,7 @@ export class SwarmChat {
   }
 
   public start() {
+    this.initSelfIndex();
     this.listenToNewSubscribers();
     this.startKeepMeAliveProcess();
     this.startMessagesFetchProcess();
@@ -87,6 +88,7 @@ export class SwarmChat {
     this.stopKeepMeAliveProcess();
     this.stopMessagesFetchProcess();
     this.stopIdleUserCleanup();
+    this.emitter.cleanAll();
   }
 
   public isUserRegistered(userAddress: EthAddress): boolean {

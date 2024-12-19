@@ -9,7 +9,6 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
-    "@anythread/gsoc": "^0.2.2",
     "@ethersphere/bee-js": "^6.9.1",
     "@solarpunkltd/gsoc": "^0.2.3",
     "clsx": "^2.1.1",

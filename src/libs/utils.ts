@@ -89,9 +89,6 @@ export class SwarmChatUtils {
         throw new Error("No bee configurations provided");
       }
       return beeConfigs.map((config) => {
-        if (!config.main && !config.stamp) {
-          throw new Error("No postage stamp provided for the bee");
-        }
         return {
           bee: new Bee(config.url),
           stamp: config.stamp,

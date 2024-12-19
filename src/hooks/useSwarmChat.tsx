@@ -1,26 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Wallet } from "ethers";
-import { BatchId } from "@ethersphere/bee-js";
 
 import { EVENTS, SwarmChat } from "../libs";
-import { EthAddress, VisibleMessage } from "../libs/types";
+import { Bees, EthAddress, VisibleMessage } from "../libs/types";
 
 interface UseSwarmChatParams {
   topic: string;
-  stamp: string;
   nickname: string;
   gsocResourceId: string;
   wallet: Wallet;
-  url: string;
+  bees: Bees;
 }
 
 export const useSwarmChat = ({
   topic,
-  stamp,
   nickname,
   gsocResourceId,
   wallet,
-  url,
+  bees,
 }: UseSwarmChatParams) => {
   const chat = useRef<SwarmChat | null>(null);
   const messageCache = useRef<VisibleMessage[]>([]);
@@ -46,18 +43,11 @@ export const useSwarmChat = ({
         gsocResourceId,
         topic,
         nickname,
-        url,
-        stamp: stamp as BatchId,
+        bees,
         ownAddress: wallet.address as EthAddress,
         privateKey: wallet.privateKey,
       });
-
       chat.current = newChat;
-
-      newChat.initSelfIndex();
-      newChat.listenToNewSubscribers();
-      newChat.startKeepMeAliveProcess();
-      newChat.startMessagesFetchProcess();
 
       const { on } = newChat.getEmitter();
 
@@ -91,16 +81,13 @@ export const useSwarmChat = ({
       on(EVENTS.LOADING_INIT_USERS, (data: boolean) => {
         setChatLoading(data);
       });
+
+      newChat.start();
     }
 
     return () => {
-      console.log("Cleaning up chat outter call");
       if (chat.current) {
-        console.log("Cleaning up chat when exits");
-        chat.current.getEmitter().cleanAll();
-        chat.current.stopKeepMeAliveProcess();
-        chat.current.stopMessagesFetchProcess();
-        chat.current.stopListenToNewSubscribers();
+        chat.current.stop();
         chat.current = null;
       }
     };

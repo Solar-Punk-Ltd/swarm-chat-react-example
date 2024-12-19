@@ -24,17 +24,42 @@ const Chat: React.FC<ChatProps> = ({
   title,
   topic,
   wallet,
-  stamp,
   nickname,
   gsocResourceId,
 }) => {
   const { chatLoading, allMessages, sendMessage } = useSwarmChat({
     topic,
-    stamp,
     nickname,
     gsocResourceId,
     wallet,
-    url: "http://65.108.40.58:1733",
+    bees: {
+      // example infrastructure settings
+      multiBees: {
+        gsoc: {
+          multiBees: [
+            {
+              url: "",
+              main: true,
+            },
+            {
+              url: "",
+              stamp: "" as BatchId,
+            },
+          ],
+        },
+        writer: {
+          singleBee: {
+            url: "",
+            stamp: "" as BatchId,
+          },
+        },
+        reader: {
+          singleBee: {
+            url: "",
+          },
+        },
+      },
+    },
   });
 
   return (
