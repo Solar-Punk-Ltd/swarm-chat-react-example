@@ -1,5 +1,3 @@
-export const FIRST_SEGMENT_INDEX = "0000000000000000";
-
 export const CONSENSUS_ID = "SwarmStream";
 
 export const EVENTS = {

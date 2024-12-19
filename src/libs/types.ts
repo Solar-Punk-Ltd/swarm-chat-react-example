@@ -6,6 +6,7 @@ import { ETH_ADDRESS_LENGTH } from "./constants";
 type FlavoredType<Type, Name> = Type & {
   __tag__?: Name;
 };
+
 type HexString<Length extends number = number> = FlavoredType<
   string & {
     readonly length: Length;
@@ -44,16 +45,6 @@ export interface User {
   address: EthAddress;
   timestamp: number;
   signature: Signature;
-}
-
-export interface UsersFeedCommit {
-  users: User[];
-  overwrite: boolean;
-}
-
-export interface UsersFeedResponse {
-  feedCommit: UsersFeedCommit;
-  nextIndex: number;
 }
 
 export interface UserWithIndex extends User {

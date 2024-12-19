@@ -3,7 +3,6 @@ import {
   BatchId,
   Bee,
   BeeRequestOptions,
-  FeedReader,
   Signer,
   UploadResult,
   Utils,
@@ -11,34 +10,56 @@ import {
 import { InformationSignal } from "@solarpunkltd/gsoc";
 import { HexString } from "@solarpunkltd/gsoc/dist/types";
 import { SingleOwnerChunk } from "@solarpunkltd/gsoc/dist/soc";
-import { FetchFeedUpdateResponse } from "@ethersphere/bee-js/dist/types/modules/feed";
 
 import {
   Bytes,
   ErrorObject,
   EthAddress,
-  MessageData,
   PrefixedHexString,
   Sha3Message,
 } from "./types";
 import { CONSENSUS_ID, HEX_RADIX } from "./constants";
 
+/**
+ * Utility class for Swarm chat operations including feed management,
+ * user validation, and interaction with Bee and GSOC.
+ */
 export class SwarmChatUtils {
   private handleError: (errObject: ErrorObject) => void;
+  private UPLOAD_GSOC_TIMEOUT = 2000;
 
   constructor(handleError: (errObject: ErrorObject) => void) {
     this.handleError = handleError;
   }
 
-  generateUsersFeedId(topic: string) {
+  /**
+   * Generate a feed ID for storing user data based on the topic.
+   * @param topic The topic identifier.
+   * @returns The generated feed ID.
+   */
+  public generateUsersFeedId(topic: string): string {
     return `${topic}_EthercastChat_Users`;
   }
 
-  generateUserOwnedFeedId(topic: string, userAddress: EthAddress) {
+  /**
+   * Generate a user-specific feed ID based on topic and user address.
+   * @param topic The topic identifier.
+   * @param userAddress The user’s Ethereum address.
+   * @returns The generated user-specific feed ID.
+   */
+  public generateUserOwnedFeedId(
+    topic: string,
+    userAddress: EthAddress
+  ): string {
     return `${topic}_EthercastChat_${userAddress}`;
   }
 
-  validateUserObject(user: any): boolean {
+  /**
+   * Validate the structure and signature of a user object.
+   * @param user The user object to validate.
+   * @returns True if valid, false otherwise.
+   */
+  public validateUserObject(user: any): boolean {
     try {
       if (typeof user.username !== "string")
         throw "username should be a string";
@@ -48,7 +69,6 @@ export class SwarmChatUtils {
       if (typeof user.signature !== "string")
         throw "signature should be a string";
 
-      // Check for absence of extra properties
       const allowedProperties = [
         "username",
         "address",
@@ -63,7 +83,6 @@ export class SwarmChatUtils {
         throw `Unexpected properties found: ${extraProperties.join(", ")}`;
       }
 
-      // Create the message that is signed, and validate the signature
       const message = {
         username: user.username,
         address: user.address,
@@ -84,94 +103,27 @@ export class SwarmChatUtils {
         context: "This User object is not correct",
         throw: false,
       });
-
       return false;
     }
   }
 
-  orderMessages(messages: any[]) {
+  /**
+   * Sort messages by their timestamp in ascending order.
+   * @param messages The list of messages to sort.
+   * @returns The sorted list of messages.
+   */
+  public orderMessages(messages: any[]): any[] {
     return messages.sort((a, b) => a.timestamp - b.timestamp);
   }
 
-  // getConsensualPrivateKey will generate a private key, that is used for the Graffiti-feed (which is a public feed, for user registration)
-  getConsensualPrivateKey(resource: Sha3Message) {
-    if (Utils.isHexString(resource) && resource.length === 64) {
-      return Utils.hexToBytes(resource);
-    }
-
-    return Utils.keccak256Hash(resource);
-  }
-
-  getGraffitiWallet(consensualPrivateKey: BytesLike) {
-    const privateKeyBuffer = hexlify(consensualPrivateKey);
-    return new Wallet(privateKeyBuffer);
-  }
-
-  serializeGraffitiRecord(record: Record<any, any>) {
-    return new TextEncoder().encode(JSON.stringify(record));
-  }
-
-  numberToFeedIndex(index: number) {
-    const bytes = new Uint8Array(8);
-    const dv = new DataView(bytes.buffer);
-    dv.setUint32(4, index);
-
-    return Utils.bytesToHex(bytes);
-  }
-
-  sleep(delay: number) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, delay);
-    });
-  }
-
-  incrementHexString(hexString: string, i = 1n) {
-    const num = BigInt("0x" + hexString);
-    return (num + i).toString(HEX_RADIX).padStart(HEX_RADIX, "0");
-  }
-
-  hexStringToNumber(hexString: string) {
-    return Number("0x" + hexString);
-  }
-
-  async fetchFeedData(
-    bee: Bee,
-    feedReader: FeedReader,
-    i?: number
-  ): Promise<{ nextIndex: number; feedData: any } | null> {
-    try {
-      let feedEntry: FetchFeedUpdateResponse;
-      let nextIndex: number;
-
-      if (i === undefined) {
-        feedEntry = await feedReader.download();
-        nextIndex = parseInt(feedEntry.feedIndexNext, HEX_RADIX);
-      } else {
-        if (i < 0) throw "Index out of range!";
-        feedEntry = await feedReader.download({ index: i });
-        nextIndex = i + 1;
-      }
-
-      const data = await bee.downloadData(feedEntry.reference);
-      const jsonFeedData = data.json();
-
-      return {
-        feedData: jsonFeedData,
-        nextIndex,
-      };
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `fetchFeedAtIndex`,
-        throw: false,
-      });
-
-      return null;
-    }
-  }
-
-  // retryAwaitableAsync will retry a promise if fails, default retry number is 3, default delay between attempts is 250 ms
-  async retryAwaitableAsync<T>(
+  /**
+   * Retry an asynchronous operation with exponential backoff.
+   * @param fn The function to retry.
+   * @param retries The number of retries.
+   * @param delay The delay between retries in milliseconds.
+   * @returns The result of the operation.
+   */
+  public async retryAwaitableAsync<T>(
     fn: () => Promise<T>,
     retries: number = 3,
     delay: number = 250
@@ -201,8 +153,14 @@ export class SwarmChatUtils {
     });
   }
 
-  // Uploads a js object to Swarm, a valid stamp needs to be provided
-  async uploadObjectToBee(
+  /**
+   * Upload an object to the Bee storage.
+   * @param bee The Bee instance.
+   * @param jsObject The object to upload.
+   * @param stamp The postage stamp.
+   * @returns The upload result or null if an error occurs.
+   */
+  public async uploadObjectToBee(
     bee: Bee,
     jsObject: object,
     stamp: BatchId
@@ -224,8 +182,14 @@ export class SwarmChatUtils {
     }
   }
 
-  // Creates a Graffiti feed writer from provided topic, Bee request options can be provided, e.g. timeout
-  graffitiFeedWriterFromTopic(
+  /**
+   * Create a feed writer for graffiti based on a topic.
+   * @param bee The Bee instance.
+   * @param topic The topic for the feed.
+   * @param options Additional Bee request options.
+   * @returns The feed writer instance.
+   */
+  public graffitiFeedWriterFromTopic(
     bee: Bee,
     topic: string,
     options?: BeeRequestOptions
@@ -240,8 +204,14 @@ export class SwarmChatUtils {
     );
   }
 
-  // Creates a Graffiti feed reader from provided topic, Bee request options can be provided, e.g. timeout
-  graffitiFeedReaderFromTopic(
+  /**
+   * Create a feed reader for graffiti based on a topic.
+   * @param bee The Bee instance.
+   * @param topic The topic for the feed.
+   * @param options Additional Bee request options.
+   * @returns The feed reader instance.
+   */
+  public graffitiFeedReaderFromTopic(
     bee: Bee,
     topic: string,
     options?: BeeRequestOptions
@@ -256,29 +226,18 @@ export class SwarmChatUtils {
     );
   }
 
-  // generateGraffitiFeedMetadata will give back a consensus hash, and a Signer, from provided topic
-  generateGraffitiFeedMetadata(topic: string) {
-    const roomId = this.generateUsersFeedId(topic);
-    const privateKey = this.getConsensualPrivateKey(roomId);
-    const wallet = this.getGraffitiWallet(privateKey);
-
-    const graffitiSigner: Signer = {
-      address: Utils.hexToBytes(wallet.address.slice(2)),
-      sign: async (data: any) => {
-        return await wallet.signMessage(data);
-      },
-    };
-
-    const consensusHash = Utils.keccak256Hash(CONSENSUS_ID);
-
-    return {
-      consensusHash,
-      graffitiSigner,
-    };
-  }
-
-  // getLatestFeedIndex will give back latestIndex and nextIndex, if download succeeds, if not, latestIndex will be -1, and nextIndex is 0
-  async getLatestFeedIndex(bee: Bee, topic: string, address: EthAddress) {
+  /**
+   * Retrieve the latest feed index for a topic and address.
+   * @param bee The Bee instance.
+   * @param topic The topic for the feed.
+   * @param address The address owning the feed.
+   * @returns The latest and next feed indexes.
+   */
+  public async getLatestFeedIndex(
+    bee: Bee,
+    topic: string,
+    address: EthAddress
+  ) {
     try {
       const feedReader = bee.makeFeedReader("sequence", topic, address);
       const feedEntry = await feedReader.download();
@@ -294,121 +253,16 @@ export class SwarmChatUtils {
     }
   }
 
-  // TODO: why bee-js do this?
-  // status is undefined in the error object
-  // Determines if the error is about 'Not Found'
-  isNotFoundError(error: any) {
-    return (
-      error.stack.includes("404") ||
-      error.message.includes("Not Found") ||
-      error.message.includes("404")
-    );
-  }
-
-  /** GSOC UTILS */
-  private isHexString<Length extends number = number>(
-    s: unknown,
-    len?: number
-  ): s is HexString<Length> {
-    return (
-      typeof s === "string" &&
-      /^[0-9a-f]+$/i.test(s) &&
-      (!len || s.length === len)
-    );
-  }
-
-  private isPrefixedHexString(s: unknown): s is PrefixedHexString {
-    return typeof s === "string" && /^0x[0-9a-f]+$/i.test(s);
-  }
-
-  private assertHexString<Length extends number = number>(
-    s: unknown,
-    len?: number,
-    name = "value"
-  ): asserts s is HexString<Length> {
-    if (!this.isHexString(s, len)) {
-      if (this.isPrefixedHexString(s)) {
-        throw new TypeError(
-          `${name} not valid non prefixed hex string (has 0x prefix): ${s}`
-        );
-      }
-
-      // Don't display length error if no length specified in order not to confuse user
-      const lengthMsg = len ? ` of length ${len}` : "";
-      throw new TypeError(`${name} not valid hex string${lengthMsg}: ${s}`);
-    }
-  }
-
-  private hexToBytes<Length extends number, LengthHex extends number = number>(
-    hex: HexString<LengthHex>
-  ): Bytes<Length> {
-    this.assertHexString(hex);
-
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < bytes.length; i++) {
-      const hexByte = hex.substr(i * 2, 2);
-      bytes[i] = parseInt(hexByte, 16);
-    }
-
-    return bytes as Bytes<Length>;
-  }
-
-  private bytesToHex<Length extends number = number>(
-    bytes: Uint8Array,
-    len?: Length
-  ): HexString<Length> {
-    const hexByte = (n: number) => n.toString(16).padStart(2, "0");
-    const hex = Array.from(bytes, hexByte).join("") as HexString<Length>;
-
-    if (len && hex.length !== len) {
-      throw new TypeError(
-        `Resulting HexString does not have expected length ${len}: ${hex}`
-      );
-    }
-
-    return hex;
-  }
-
   /**
-   * @param url Bee url
-   * @param stamp Valid stamp
-   * @param gateway Overlay address of the gateway
-   * @param topic Topic for the chat
+   * Subscribe to GSOC messages for a topic and resource ID.
+   * @param url The Bee URL.
+   * @param stamp The postage stamp.
+   * @param topic The chat topic.
+   * @param resourceId The resource ID for subscription.
+   * @param callback Callback to handle incoming messages.
+   * @returns The subscription instance or null if an error occurs.
    */
-  mineResourceId(
-    url: string,
-    stamp: BatchId,
-    gateway: string,
-    topic: string
-  ): HexString<number> | null {
-    try {
-      const informationSignal = new InformationSignal(url, {
-        consensus: {
-          id: `SwarmDecentralizedChat::${topic}`,
-          assertRecord: (input) => {
-            return true;
-          },
-        },
-        postage: stamp,
-      });
-
-      const mineResult = informationSignal.mineResourceId(
-        this.hexToBytes(gateway),
-        24
-      );
-
-      return this.bytesToHex(mineResult.resourceId);
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `mineResourceId`,
-        throw: true,
-      });
-      return null;
-    }
-  }
-
-  subscribeToGsoc(
+  public subscribeToGsoc(
     url: string,
     stamp: BatchId,
     topic: string,
@@ -449,7 +303,16 @@ export class SwarmChatUtils {
     }
   }
 
-  async sendMessageToGsoc(
+  /**
+   * Send a message to GSOC for a specific topic and resource ID.
+   * @param url The Bee URL.
+   * @param stamp The postage stamp.
+   * @param topic The chat topic.
+   * @param resourceId The resource ID for the message.
+   * @param message The message to send.
+   * @returns The uploaded SingleOwnerChunk or undefined if an error occurs.
+   */
+  public async sendMessageToGsoc(
     url: string,
     stamp: BatchId,
     topic: string,
@@ -470,7 +333,7 @@ export class SwarmChatUtils {
       });
 
       const uploadedSoc = await informationSignal.write(message, resourceId, {
-        timeout: 2000,
+        timeout: this.UPLOAD_GSOC_TIMEOUT,
       });
 
       return uploadedSoc;
@@ -481,5 +344,209 @@ export class SwarmChatUtils {
         throw: false,
       });
     }
+  }
+
+  /**
+   * Mine a resource ID for the chat.
+   * @param url The Bee URL.
+   * @param stamp The postage stamp.
+   * @param gateway The overlay address of the gateway.
+   * @param topic The chat topic.
+   * @returns The mined resource ID or null if an error occurs.
+   */
+  public mineResourceId(
+    url: string,
+    stamp: BatchId,
+    gateway: string,
+    topic: string
+  ): HexString<number> | null {
+    try {
+      const informationSignal = new InformationSignal(url, {
+        consensus: {
+          id: `SwarmDecentralizedChat::${topic}`,
+          assertRecord: (input) => {
+            return true;
+          },
+        },
+        postage: stamp,
+      });
+
+      const mineResult = informationSignal.mineResourceId(
+        this.hexToBytes(gateway),
+        24
+      );
+
+      return this.bytesToHex(mineResult.resourceId);
+    } catch (error) {
+      this.handleError({
+        error: error as unknown as Error,
+        context: `mineResourceId`,
+        throw: true,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Generate a private key for graffiti using a resource.
+   * @param resource The resource used to generate the key.
+   * @returns The private key as a byte array.
+   */
+  private getConsensualPrivateKey(resource: Sha3Message): Uint8Array {
+    if (Utils.isHexString(resource) && resource.length === 64) {
+      return Utils.hexToBytes(resource);
+    }
+    return Utils.keccak256Hash(resource);
+  }
+
+  /**
+   * Create a wallet from a consensual private key.
+   * @param consensualPrivateKey The private key to create the wallet.
+   * @returns The created wallet.
+   */
+  private getGraffitiWallet(consensualPrivateKey: BytesLike): Wallet {
+    const privateKeyBuffer = hexlify(consensualPrivateKey);
+    return new Wallet(privateKeyBuffer);
+  }
+
+  /**
+   * Serialize a graffiti record to a Uint8Array.
+   * @param record The graffiti record to serialize.
+   * @returns The serialized record.
+   */
+  private serializeGraffitiRecord(record: Record<any, any>): Uint8Array {
+    return new TextEncoder().encode(JSON.stringify(record));
+  }
+
+  /**
+   * Generate metadata for graffiti feed including consensus hash and signer.
+   * @param topic The topic for the feed.
+   * @returns The feed metadata.
+   */
+  private generateGraffitiFeedMetadata(topic: string) {
+    const roomId = this.generateUsersFeedId(topic);
+    const privateKey = this.getConsensualPrivateKey(roomId);
+    const wallet = this.getGraffitiWallet(privateKey);
+
+    const graffitiSigner: Signer = {
+      address: Utils.hexToBytes(wallet.address.slice(2)),
+      sign: async (data: any) => {
+        return await wallet.signMessage(data);
+      },
+    };
+
+    const consensusHash = Utils.keccak256Hash(CONSENSUS_ID);
+
+    return {
+      consensusHash,
+      graffitiSigner,
+    };
+  }
+
+  /**
+   * Determine if a string is a valid hexadecimal string of a given length.
+   * @param s The input string.
+   * @param len The optional expected length.
+   * @returns True if the string is a valid hex string, false otherwise.
+   */
+  private isHexString<Length extends number = number>(
+    s: unknown,
+    len?: number
+  ): s is HexString<Length> {
+    return (
+      typeof s === "string" &&
+      /^[0-9a-f]+$/i.test(s) &&
+      (!len || s.length === len)
+    );
+  }
+
+  /**
+   * Determine if a string is a valid prefixed hexadecimal string.
+   * @param s The input string.
+   * @returns True if the string is a valid prefixed hex string, false otherwise.
+   */
+  private isPrefixedHexString(s: unknown): s is PrefixedHexString {
+    return typeof s === "string" && /^0x[0-9a-f]+$/i.test(s);
+  }
+
+  /**
+   * Assert that a string is a valid hexadecimal string of a given length.
+   * Throws an error if the assertion fails.
+   * @param s The input string.
+   * @param len The optional expected length.
+   * @param name The name of the value for error messages.
+   */
+  private assertHexString<Length extends number = number>(
+    s: unknown,
+    len?: number,
+    name = "value"
+  ): asserts s is HexString<Length> {
+    if (!this.isHexString(s, len)) {
+      if (this.isPrefixedHexString(s)) {
+        throw new TypeError(
+          `${name} not valid non prefixed hex string (has 0x prefix): ${s}`
+        );
+      }
+
+      const lengthMsg = len ? ` of length ${len}` : "";
+      throw new TypeError(`${name} not valid hex string${lengthMsg}: ${s}`);
+    }
+  }
+
+  /**
+   * Convert a hexadecimal string to a Uint8Array.
+   * @param hex The input hexadecimal string.
+   * @returns The converted byte array.
+   */
+  private hexToBytes<Length extends number, LengthHex extends number = number>(
+    hex: HexString<LengthHex>
+  ): Bytes<Length> {
+    this.assertHexString(hex);
+
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+      const hexByte = hex.substr(i * 2, 2);
+      bytes[i] = parseInt(hexByte, 16);
+    }
+
+    return bytes as Bytes<Length>;
+  }
+
+  /**
+   * Convert a Uint8Array to a hexadecimal string.
+   * @param bytes The input byte array.
+   * @param len The optional expected length of the hex string.
+   * @returns The converted hexadecimal string.
+   */
+  private bytesToHex<Length extends number = number>(
+    bytes: Uint8Array,
+    len?: Length
+  ): HexString<Length> {
+    const hexByte = (n: number) => n.toString(16).padStart(2, "0");
+    const hex = Array.from(bytes, hexByte).join("") as HexString<Length>;
+
+    if (len && hex.length !== len) {
+      throw new TypeError(
+        `Resulting HexString does not have expected length ${len}: ${hex}`
+      );
+    }
+
+    return hex;
+  }
+
+  /**
+   * Determine if an error is related to a 404 Not Found response.
+   * @param error The error object.
+   * @returns True if it is a Not Found error, false otherwise.
+   */
+  private isNotFoundError(error: any): boolean {
+    // TODO: why bee-js do this?
+    // status is undefined in the error object
+    // Determines if the error is about 'Not Found'
+    return (
+      error.stack.includes("404") ||
+      error.message.includes("Not Found") ||
+      error.message.includes("404")
+    );
   }
 }

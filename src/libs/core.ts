@@ -5,7 +5,6 @@ import { HexString } from "@solarpunkltd/gsoc/dist/types";
 
 import { SwarmChatUtils } from "./utils";
 import { EventEmitter } from "./eventEmitter";
-import { AsyncQueue } from "./asyncQueue";
 import { Queue } from "./queue";
 
 import {
@@ -17,6 +16,7 @@ import {
 } from "./types";
 
 import { EVENTS } from "./constants";
+import { sleep } from "./common";
 export class SwarmChat {
   private readerBee = new Bee("http://65.108.40.58:1633");
   private writerBee = new Bee("http://65.108.40.58:1833");
@@ -24,7 +24,7 @@ export class SwarmChat {
   private gsoc2Bee = new Bee("http://65.108.40.58:1933");
   private emitter = new EventEmitter();
 
-  private messagesQueue: AsyncQueue;
+  private messagesQueue: Queue;
   private gsocListenerQueue: Queue;
   private users: Record<string, UserWithIndex> = {};
   private userIndexCache: Record<string, number> = {};
@@ -56,11 +56,14 @@ export class SwarmChat {
 
     this.utils = new SwarmChatUtils(this.handleError.bind(this));
 
-    this.messagesQueue = new AsyncQueue(
-      { waitable: true },
+    this.messagesQueue = new Queue(
+      { clearWaitTime: 200 },
       this.handleError.bind(this)
     );
-    this.gsocListenerQueue = new Queue();
+    this.gsocListenerQueue = new Queue(
+      { clearWaitTime: 200 },
+      this.handleError.bind(this)
+    );
 
     this.gsocStamp =
       "76a6c300e0af507d6fbf18c027aa3c9a1736d438c52ab7257342d169c4c11d29" as BatchId;
@@ -209,7 +212,7 @@ export class SwarmChat {
       this.ownIndex = nextIndex;
       // do not allow a new message till the latest is read
       while (!this.isUserIndexRead(this.ownAddress, this.ownIndex)) {
-        await this.utils.sleep(500);
+        await sleep(200);
       }
       console.log("sendMessage - Message sent successfully");
     } catch (error) {
@@ -332,8 +335,6 @@ export class SwarmChat {
         return;
       }
 
-      console.log("userRegistrationOnGsoc - User object", user);
-
       if (
         this.tempUser?.address === user.address &&
         Object.keys(this.users).length > 1
@@ -348,6 +349,8 @@ export class SwarmChat {
         console.warn("Invalid user object:", user);
         return;
       }
+
+      console.log("userRegistrationOnGsoc - User object", user);
 
       this.setUser(user);
       this.tempUser = user;
