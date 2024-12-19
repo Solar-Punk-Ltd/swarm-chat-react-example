@@ -11,13 +11,7 @@ import { InformationSignal } from "@solarpunkltd/gsoc";
 import { HexString } from "@solarpunkltd/gsoc/dist/types";
 import { SingleOwnerChunk } from "@solarpunkltd/gsoc/dist/soc";
 
-import {
-  Bytes,
-  ErrorObject,
-  EthAddress,
-  PrefixedHexString,
-  Sha3Message,
-} from "./types";
+import { ErrorObject, EthAddress, Sha3Message } from "./types";
 import { CONSENSUS_ID, HEX_RADIX } from "./constants";
 
 /**
@@ -347,47 +341,6 @@ export class SwarmChatUtils {
   }
 
   /**
-   * Mine a resource ID for the chat.
-   * @param url The Bee URL.
-   * @param stamp The postage stamp.
-   * @param gateway The overlay address of the gateway.
-   * @param topic The chat topic.
-   * @returns The mined resource ID or null if an error occurs.
-   */
-  public mineResourceId(
-    url: string,
-    stamp: BatchId,
-    gateway: string,
-    topic: string
-  ): HexString<number> | null {
-    try {
-      const informationSignal = new InformationSignal(url, {
-        consensus: {
-          id: `SwarmDecentralizedChat::${topic}`,
-          assertRecord: (input) => {
-            return true;
-          },
-        },
-        postage: stamp,
-      });
-
-      const mineResult = informationSignal.mineResourceId(
-        this.hexToBytes(gateway),
-        24
-      );
-
-      return this.bytesToHex(mineResult.resourceId);
-    } catch (error) {
-      this.handleError({
-        error: error as unknown as Error,
-        context: `mineResourceId`,
-        throw: true,
-      });
-      return null;
-    }
-  }
-
-  /**
    * Generate a private key for graffiti using a resource.
    * @param resource The resource used to generate the key.
    * @returns The private key as a byte array.
@@ -441,97 +394,6 @@ export class SwarmChatUtils {
       consensusHash,
       graffitiSigner,
     };
-  }
-
-  /**
-   * Determine if a string is a valid hexadecimal string of a given length.
-   * @param s The input string.
-   * @param len The optional expected length.
-   * @returns True if the string is a valid hex string, false otherwise.
-   */
-  private isHexString<Length extends number = number>(
-    s: unknown,
-    len?: number
-  ): s is HexString<Length> {
-    return (
-      typeof s === "string" &&
-      /^[0-9a-f]+$/i.test(s) &&
-      (!len || s.length === len)
-    );
-  }
-
-  /**
-   * Determine if a string is a valid prefixed hexadecimal string.
-   * @param s The input string.
-   * @returns True if the string is a valid prefixed hex string, false otherwise.
-   */
-  private isPrefixedHexString(s: unknown): s is PrefixedHexString {
-    return typeof s === "string" && /^0x[0-9a-f]+$/i.test(s);
-  }
-
-  /**
-   * Assert that a string is a valid hexadecimal string of a given length.
-   * Throws an error if the assertion fails.
-   * @param s The input string.
-   * @param len The optional expected length.
-   * @param name The name of the value for error messages.
-   */
-  private assertHexString<Length extends number = number>(
-    s: unknown,
-    len?: number,
-    name = "value"
-  ): asserts s is HexString<Length> {
-    if (!this.isHexString(s, len)) {
-      if (this.isPrefixedHexString(s)) {
-        throw new TypeError(
-          `${name} not valid non prefixed hex string (has 0x prefix): ${s}`
-        );
-      }
-
-      const lengthMsg = len ? ` of length ${len}` : "";
-      throw new TypeError(`${name} not valid hex string${lengthMsg}: ${s}`);
-    }
-  }
-
-  /**
-   * Convert a hexadecimal string to a Uint8Array.
-   * @param hex The input hexadecimal string.
-   * @returns The converted byte array.
-   */
-  private hexToBytes<Length extends number, LengthHex extends number = number>(
-    hex: HexString<LengthHex>
-  ): Bytes<Length> {
-    this.assertHexString(hex);
-
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < bytes.length; i++) {
-      const hexByte = hex.substr(i * 2, 2);
-      bytes[i] = parseInt(hexByte, 16);
-    }
-
-    return bytes as Bytes<Length>;
-  }
-
-  /**
-   * Convert a Uint8Array to a hexadecimal string.
-   * @param bytes The input byte array.
-   * @param len The optional expected length of the hex string.
-   * @returns The converted hexadecimal string.
-   */
-  private bytesToHex<Length extends number = number>(
-    bytes: Uint8Array,
-    len?: Length
-  ): HexString<Length> {
-    const hexByte = (n: number) => n.toString(16).padStart(2, "0");
-    const hex = Array.from(bytes, hexByte).join("") as HexString<Length>;
-
-    if (len && hex.length !== len) {
-      throw new TypeError(
-        `Resulting HexString does not have expected length ${len}: ${hex}`
-      );
-    }
-
-    return hex;
   }
 
   /**
