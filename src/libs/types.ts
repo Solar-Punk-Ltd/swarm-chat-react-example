@@ -87,6 +87,10 @@ export interface ChatSettings {
   topic: string;
   gsocResourceId: string;
   bees: Bees;
+  keepAliveIntervalTime?: number;
+  fetchMessageIntervalTime?: number;
+  idleUserCleanupIntervalTime?: number;
+  readMessageTimeout?: number;
 }
 export interface ErrorObject {
   error: Error;
