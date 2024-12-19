@@ -1,6 +1,7 @@
 import React from "react";
-import "./SendIcon.scss";
 import clsx from "clsx";
+
+import "./SendIcon.scss";
 
 interface SendIconProps {
   color?: string;
@@ -8,7 +9,7 @@ interface SendIconProps {
   disabled?: boolean;
 }
 
-const SendIcon: React.FC<SendIconProps> = ({
+export const SendIcon: React.FC<SendIconProps> = ({
   color,
   backgroundColor,
   disabled,
@@ -30,5 +31,3 @@ const SendIcon: React.FC<SendIconProps> = ({
     </div>
   );
 };
-
-export default SendIcon;

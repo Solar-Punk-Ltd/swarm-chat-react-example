@@ -2,14 +2,10 @@ export const CONSENSUS_ID = "SwarmStream";
 
 export const EVENTS = {
   LOADING_INIT_USERS: "loadingInitUsers",
-  LOADING_USERS: "loadingUsers",
-  LOADING_REGISTRATION: "loadingRegistration",
-  RECEIVE_MESSAGE: "receiveMessage",
-  USER_REGISTERED: "userRegistered",
-  FEED_COMMIT_HASH: "feedCommitHash",
-  ERROR: "errorEvent",
+  MESSAGE_RECEIVED: "messageReceived",
   MESSAGE_REQUEST_SENT: "messageRequestSent",
   MESSAGE_REQUEST_ERROR: "messageRequestError",
+  ERROR: "errorEvent",
 };
 
 export const SECOND = 1000;

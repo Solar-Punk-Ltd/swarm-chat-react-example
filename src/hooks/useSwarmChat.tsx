@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Wallet } from "ethers";
 import { BatchId } from "@ethersphere/bee-js";
 
@@ -31,13 +31,14 @@ export const useSwarmChat = ({
     id: string,
     messages: VisibleMessage[],
     updates: Partial<VisibleMessage>
-  ): VisibleMessage[] => {
-    const messageIndex = messages.findIndex((msg) => msg.id === id);
-    if (messageIndex !== -1) {
-      messages[messageIndex] = { ...messages[messageIndex], ...updates };
-    }
-    return [...messages];
-  };
+  ): VisibleMessage[] =>
+    useMemo(() => {
+      const messageIndex = messages.findIndex((msg) => msg.id === id);
+      if (messageIndex !== -1) {
+        messages[messageIndex] = { ...messages[messageIndex], ...updates };
+      }
+      return [...messages];
+    }, []);
 
   useEffect(() => {
     if (!chat.current) {
@@ -72,7 +73,7 @@ export const useSwarmChat = ({
         setAllMessages(newChat.orderMessages([...messageCache.current]));
       });
 
-      on(EVENTS.RECEIVE_MESSAGE, (data: VisibleMessage) => {
+      on(EVENTS.MESSAGE_RECEIVED, (data: VisibleMessage) => {
         const existingMessage = messageCache.current.find(
           (msg) => msg.id === data.id
         );

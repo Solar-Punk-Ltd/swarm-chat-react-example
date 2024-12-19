@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import SendIcon from "../icons/SendIcon/SendIcon";
+import { SendIcon } from "./SendIcon/SendIcon";
 import { InputLoading } from "./InputLoading/InputLoading";
 
 import "./ChatInput.scss";

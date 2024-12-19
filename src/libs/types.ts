@@ -2,23 +2,11 @@ import { Signature } from "ethers";
 import { BatchId, Bee } from "@ethersphere/bee-js";
 
 import { ETH_ADDRESS_LENGTH } from "./constants";
-
-type FlavoredType<Type, Name> = Type & {
-  __tag__?: Name;
-};
-
-type HexString<Length extends number = number> = FlavoredType<
-  string & {
-    readonly length: Length;
-  },
-  "HexString"
->;
+import { HexString } from "@solarpunkltd/gsoc/dist/types";
 
 export interface Bytes<Length extends number> extends Uint8Array {
   readonly length: Length;
 }
-
-export type PrefixedHexString = FlavoredType<string, "PrefixedHexString">;
 
 export interface GsocSubscribtion {
   close: () => void;

@@ -1,4 +1,3 @@
-import { BatchId, Bee } from "@ethersphere/bee-js";
 import { ethers, Signature } from "ethers";
 import { v4 as uuidv4 } from "uuid";
 import { HexString } from "@solarpunkltd/gsoc/dist/types";
@@ -8,7 +7,6 @@ import { EventEmitter } from "./eventEmitter";
 import { Queue } from "./queue";
 
 import {
-  Bees,
   BeeType,
   ChatSettings,
   ErrorObject,
@@ -34,8 +32,12 @@ export class SwarmChat {
     this.handleError.bind(this)
   );
 
-  private fetchMessageInterval: NodeJS.Timeout | null = null;
-  private keepUserAliveInterval: NodeJS.Timeout | null = null;
+  private fetchMessageTimer: NodeJS.Timeout | null = null;
+  private keepUserAliveTimer: NodeJS.Timeout | null = null;
+
+  private KEEP_ALIVE_INTERVAL_TIME = 2000;
+  private FETCH_MESSAGE_INTERVAL_TIME = 1000;
+  private READ_MESSAGE_TIMEOUT = 1500;
 
   private users: Record<string, UserWithIndex> = {};
   private userIndexCache: Record<string, number> = {};
@@ -50,12 +52,6 @@ export class SwarmChat {
   private topic: string;
   private nickname: string;
   private ownIndex: number | null = null;
-
-  private eventStates: Record<string, boolean> = {
-    loadingInitUsers: false,
-    loadingUsers: false,
-    loadingRegistration: false,
-  };
 
   constructor(settings: ChatSettings) {
     this.ownAddress = settings.ownAddress;
@@ -74,30 +70,30 @@ export class SwarmChat {
   }
 
   public startKeepMeAliveProcess() {
-    this.keepUserAliveInterval = setInterval(
+    this.keepUserAliveTimer = setInterval(
       this.keepUserAlive.bind(this),
-      2000
+      this.KEEP_ALIVE_INTERVAL_TIME
     );
   }
 
   public stopKeepMeAliveProcess() {
-    if (this.keepUserAliveInterval) {
-      clearInterval(this.keepUserAliveInterval);
-      this.keepUserAliveInterval = null;
+    if (this.keepUserAliveTimer) {
+      clearInterval(this.keepUserAliveTimer);
+      this.keepUserAliveTimer = null;
     }
   }
 
   public startMessagesFetchProcess() {
-    this.fetchMessageInterval = setInterval(
+    this.fetchMessageTimer = setInterval(
       () => this.readMessagesForAll(),
-      1000
+      this.FETCH_MESSAGE_INTERVAL_TIME
     );
   }
 
   public stopMessagesFetchProcess() {
-    if (this.fetchMessageInterval) {
-      clearInterval(this.fetchMessageInterval);
-      this.fetchMessageInterval = null;
+    if (this.fetchMessageTimer) {
+      clearInterval(this.fetchMessageTimer);
+      this.fetchMessageTimer = null;
     }
   }
 
@@ -186,8 +182,6 @@ export class SwarmChat {
 
       const { bee, stamp } = this.getWriterBee();
 
-      const feedTopicHex = bee.makeFeedTopic(feedID);
-
       const msgData = await this.utils.uploadObjectToBee(
         bee,
         messageObj,
@@ -195,6 +189,7 @@ export class SwarmChat {
       );
       if (!msgData) throw "Could not upload message data to bee";
 
+      const feedTopicHex = bee.makeFeedTopic(feedID);
       const feedWriter = bee.makeFeedWriter(
         "sequence",
         feedTopicHex,
@@ -227,8 +222,6 @@ export class SwarmChat {
       if (!this.gsocResourceId) {
         throw new Error("GSOC Resource ID is not defined");
       }
-
-      this.emitStateEvent(EVENTS.LOADING_REGISTRATION, true);
 
       const index = this.getOwnIndex();
       if (index === null) {
@@ -282,8 +275,6 @@ export class SwarmChat {
         context: `registerUser`,
         throw: false,
       });
-    } finally {
-      this.emitStateEvent(EVENTS.LOADING_REGISTRATION, false);
     }
   }
 
@@ -390,14 +381,14 @@ export class SwarmChat {
       console.log("ACTUAL READ");
 
       const bee = this.getReaderBee();
+
       const chatID = this.utils.generateUserOwnedFeedId(rawTopic, user.address);
       const topic = bee.makeFeedTopic(chatID);
-
       const feedReader = bee.makeFeedReader("sequence", topic, user.address, {
-        timeout: 1500,
+        timeout: this.READ_MESSAGE_TIMEOUT,
       });
-      const recordPointer = await feedReader.download({ index: user.index });
 
+      const recordPointer = await feedReader.download({ index: user.index });
       const data = await bee.downloadData(recordPointer.reference, {
         headers: {
           "Swarm-Redundancy-Level": "0",
@@ -405,7 +396,7 @@ export class SwarmChat {
       });
       const messageData = JSON.parse(new TextDecoder().decode(data));
 
-      this.emitter.emit(EVENTS.RECEIVE_MESSAGE, messageData);
+      this.emitter.emit(EVENTS.MESSAGE_RECEIVED, messageData);
       this.setUserIndexCache(user);
     } catch (error) {
       if (error instanceof Error) {
@@ -458,13 +449,6 @@ export class SwarmChat {
       throw new Error("Could not get valid writer stamp");
     }
     return { bee, stamp };
-  }
-
-  private emitStateEvent(event: string, value: any) {
-    if (this.eventStates[event] !== value) {
-      this.eventStates[event] = value;
-      this.emitter.emit(event, value);
-    }
   }
 
   private handleError(errObject: ErrorObject) {
