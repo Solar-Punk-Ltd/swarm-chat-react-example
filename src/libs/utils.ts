@@ -11,7 +11,17 @@ import { InformationSignal } from "@solarpunkltd/gsoc";
 import { HexString } from "@solarpunkltd/gsoc/dist/types";
 import { SingleOwnerChunk } from "@solarpunkltd/gsoc/dist/soc";
 
-import { ErrorObject, EthAddress, Sha3Message } from "./types";
+import {
+  Bees,
+  BeeType,
+  ErrorObject,
+  EthAddress,
+  Sha3Message,
+  BeeSettings,
+  InitializedBees,
+  InitializedBee,
+  MultiBees,
+} from "./types";
 import { CONSENSUS_ID, HEX_RADIX } from "./constants";
 
 /**
@@ -46,6 +56,115 @@ export class SwarmChatUtils {
     userAddress: EthAddress
   ): string {
     return `${topic}_EthercastChat_${userAddress}`;
+  }
+
+  /**
+   * Initializes Bee instances based on the provided Bees configuration.
+   * @param bees - The Bees configuration object containing single or multiple bees.
+   * @returns An object mapping each bee type (gsoc, reader, writer) to its initialized bee(s).
+   * @throws If required bees or postage stamps are not provided.
+   */
+  public initBees(bees: Bees): InitializedBees {
+    if (!bees.singleBee && !bees.multiBees) {
+      throw new Error("No bees provided");
+    }
+
+    const initializedBees: InitializedBees = {};
+
+    const initializeSingleBee = (beeConfig: BeeSettings): InitializedBee => {
+      if (!beeConfig.stamp) {
+        throw new Error("No postage stamp provided for the bee");
+      }
+      return {
+        bee: new Bee(beeConfig.url),
+        stamp: beeConfig.stamp,
+        main: beeConfig.main,
+      };
+    };
+
+    const initializeMultipleBees = (
+      beeConfigs?: BeeSettings[]
+    ): InitializedBee[] => {
+      if (!beeConfigs) {
+        throw new Error("No bee configurations provided");
+      }
+      return beeConfigs.map((config) => {
+        if (!config.main && !config.stamp) {
+          throw new Error("No postage stamp provided for the bee");
+        }
+        return {
+          bee: new Bee(config.url),
+          stamp: config.stamp,
+          main: config.main,
+        };
+      });
+    };
+
+    if (bees.singleBee) {
+      if (!bees.singleBee.stamp) {
+        throw new Error("No postage stamp provided for the single bee");
+      }
+      return { single: initializeSingleBee(bees.singleBee) };
+    }
+
+    const types: (keyof MultiBees)[] = ["gsoc", "reader", "writer"];
+    for (const type of types) {
+      const beeGroup = bees.multiBees?.[type];
+      if (!beeGroup) continue;
+
+      if (beeGroup.singleBee) {
+        initializedBees[type] = initializeSingleBee(beeGroup.singleBee);
+      } else if (beeGroup.multiBees) {
+        initializedBees[type] = initializeMultipleBees(beeGroup.multiBees);
+      }
+    }
+
+    return initializedBees;
+  }
+
+  /**
+   * Selects a Bee instance from the initialized bees based on the provided parameters.
+   * @param initializedBees The object containing initialized bees.
+   * @param type The type of bee to select (e.g., GSOC, READER, WRITER).
+   * @param main If true, selects the main bee; otherwise, selects a random non-main bee.
+   * @returns The selected Bee instance.
+   * @throws If no suitable bee is found for the specified type.
+   */
+  public selectBee(
+    initializedBees: InitializedBees,
+    type: BeeType,
+    main?: boolean
+  ): InitializedBee {
+    const beeGroup = initializedBees[type];
+
+    if (!beeGroup) {
+      throw new Error(`No ${type} bees available`);
+    }
+
+    // multiple bees
+    if (Array.isArray(beeGroup)) {
+      if (main) {
+        const mainBee = beeGroup.find((bee) => bee.main);
+        if (mainBee) {
+          return mainBee;
+        }
+      }
+
+      const nonMainBees = beeGroup.filter((bee) => !bee.main);
+      if (nonMainBees.length > 0) {
+        const randomIndex = Math.floor(Math.random() * nonMainBees.length);
+        return nonMainBees[randomIndex];
+      }
+
+      throw new Error(`No non-main ${type} bees available`);
+    }
+
+    // single bee
+    if (beeGroup.bee) {
+      return beeGroup;
+    }
+
+    throw new Error(`No ${type} bees available`);
   }
 
   /**
@@ -258,7 +377,6 @@ export class SwarmChatUtils {
    */
   public subscribeToGsoc(
     url: string,
-    stamp: BatchId,
     topic: string,
     resourceId: HexString<number>,
     callback: (gsocMessage: string) => void
@@ -275,7 +393,6 @@ export class SwarmChatUtils {
             return isValid;
           },
         },
-        postage: stamp,
       });
 
       const gsocSub = informationSignal.subscribe(

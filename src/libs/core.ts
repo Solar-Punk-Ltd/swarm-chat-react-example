@@ -8,6 +8,8 @@ import { EventEmitter } from "./eventEmitter";
 import { Queue } from "./queue";
 
 import {
+  Bees,
+  BeeType,
   ChatSettings,
   ErrorObject,
   EthAddress,
@@ -18,31 +20,36 @@ import {
 import { EVENTS } from "./constants";
 import { sleep } from "./common";
 export class SwarmChat {
-  private readerBee = new Bee("http://65.108.40.58:1633");
-  private writerBee = new Bee("http://65.108.40.58:1833");
-  private gsocBee = new Bee("http://65.108.40.58:1733");
-  private gsoc2Bee = new Bee("http://65.108.40.58:1933");
   private emitter = new EventEmitter();
+  private utils = new SwarmChatUtils(this.handleError.bind(this));
 
-  private messagesQueue: Queue;
-  private gsocListenerQueue: Queue;
+  private bees;
+
+  private messagesQueue = new Queue(
+    { clearWaitTime: 200 },
+    this.handleError.bind(this)
+  );
+  private gsocListenerQueue = new Queue(
+    { clearWaitTime: 200 },
+    this.handleError.bind(this)
+  );
+
+  private fetchMessageInterval: NodeJS.Timeout | null = null;
+  private keepUserAliveInterval: NodeJS.Timeout | null = null;
+
   private users: Record<string, UserWithIndex> = {};
   private userIndexCache: Record<string, number> = {};
   private userPunishmentCache: Record<string, number> = {};
   private tempUser: UserWithIndex | null = null;
-  private gsocResourceId: HexString<number> = "";
+
+  private gsocResourceId: HexString<number> | null = null;
   private gsocSubscribtion: GsocSubscribtion | null = null;
-  private fetchMessageInterval: NodeJS.Timeout | null = null;
-  private keepUserAliveInterval: NodeJS.Timeout | null = null;
-  private utils: SwarmChatUtils;
-  private topic: string;
-  private gsocStamp: BatchId;
-  private gsoc2Stamp: BatchId;
-  private writerStamp: BatchId;
-  private nickname: string;
-  private ownAddress: EthAddress;
-  private ownIndex: number | null = null;
+
   private privateKey: string;
+  private ownAddress: EthAddress;
+  private topic: string;
+  private nickname: string;
+  private ownIndex: number | null = null;
 
   private eventStates: Record<string, boolean> = {
     loadingInitUsers: false,
@@ -51,32 +58,12 @@ export class SwarmChat {
   };
 
   constructor(settings: ChatSettings) {
-    this.gsocResourceId = settings.gsocResourceId || "";
-    this.emitter = new EventEmitter();
-
-    this.utils = new SwarmChatUtils(this.handleError.bind(this));
-
-    this.messagesQueue = new Queue(
-      { clearWaitTime: 200 },
-      this.handleError.bind(this)
-    );
-    this.gsocListenerQueue = new Queue(
-      { clearWaitTime: 200 },
-      this.handleError.bind(this)
-    );
-
-    this.gsocStamp =
-      "76a6c300e0af507d6fbf18c027aa3c9a1736d438c52ab7257342d169c4c11d29" as BatchId;
-    this.gsoc2Stamp =
-      "70c7ba0bda4679f25b3bc1ca7365b8f6c63641f27c1b83020943ae2ad6e08713" as BatchId;
-    this.writerStamp =
-      "7aaab1489af2b768795247c4ae51243abff454081d6dd9089d23fce6c93939d8" as BatchId;
-    this.topic = settings.topic;
-    this.nickname = settings.nickname;
     this.ownAddress = settings.ownAddress;
     this.privateKey = settings.privateKey;
-
-    console.info(`SwarmChat created, version: v0.1.8 or above`);
+    this.topic = settings.topic;
+    this.nickname = settings.nickname;
+    this.gsocResourceId = settings.gsocResourceId;
+    this.bees = this.utils.initBees(settings.bees);
   }
 
   public stopListenToNewSubscribers() {
@@ -128,10 +115,12 @@ export class SwarmChat {
         this.topic,
         this.ownAddress
       );
-      const feedTopicHex = this.readerBee.makeFeedTopic(feedID);
+
+      const bee = this.getReaderBee();
+      const feedTopicHex = bee.makeFeedTopic(feedID);
 
       const { latestIndex } = await this.utils.getLatestFeedIndex(
-        this.readerBee,
+        bee,
         feedTopicHex,
         this.ownAddress
       );
@@ -148,10 +137,15 @@ export class SwarmChat {
 
   public listenToNewSubscribers() {
     try {
+      if (!this.gsocResourceId) {
+        throw new Error("GSOC Resource ID is not defined");
+      }
+
       this.emitter.emit(EVENTS.LOADING_INIT_USERS, true);
+
+      const bee = this.getMainGsocBee();
       this.gsocSubscribtion = this.utils.subscribeToGsoc(
-        this.gsocBee.url,
-        this.gsocStamp,
+        bee.url,
         this.topic,
         this.gsocResourceId,
         (gsocMessage: string) =>
@@ -189,23 +183,26 @@ export class SwarmChat {
         this.topic,
         this.ownAddress
       );
-      const feedTopicHex = this.writerBee.makeFeedTopic(feedID);
+
+      const { bee, stamp } = this.getWriterBee();
+
+      const feedTopicHex = bee.makeFeedTopic(feedID);
 
       const msgData = await this.utils.uploadObjectToBee(
-        this.writerBee,
+        bee,
         messageObj,
-        this.writerStamp
+        stamp
       );
       if (!msgData) throw "Could not upload message data to bee";
 
-      const feedWriter = this.writerBee.makeFeedWriter(
+      const feedWriter = bee.makeFeedWriter(
         "sequence",
         feedTopicHex,
         this.privateKey
       );
 
       const nextIndex = this.ownIndex === -1 ? 0 : this.ownIndex + 1;
-      await feedWriter.upload(this.writerStamp, msgData.reference, {
+      await feedWriter.upload(stamp, msgData.reference, {
         index: nextIndex,
       });
 
@@ -227,6 +224,10 @@ export class SwarmChat {
 
   public async keepUserAlive() {
     try {
+      if (!this.gsocResourceId) {
+        throw new Error("GSOC Resource ID is not defined");
+      }
+
       this.emitStateEvent(EVENTS.LOADING_REGISTRATION, true);
 
       const index = this.getOwnIndex();
@@ -264,9 +265,11 @@ export class SwarmChat {
         throw new Error("User object validation failed");
       }
 
+      const { bee, stamp } = this.getGsocBee();
+
       const result = await this.utils.sendMessageToGsoc(
-        this.gsoc2Bee.url,
-        this.gsoc2Stamp,
+        bee.url,
+        stamp,
         this.topic,
         this.gsocResourceId,
         JSON.stringify(newUser)
@@ -386,18 +389,16 @@ export class SwarmChat {
 
       console.log("ACTUAL READ");
 
+      const bee = this.getReaderBee();
       const chatID = this.utils.generateUserOwnedFeedId(rawTopic, user.address);
-      const topic = this.readerBee.makeFeedTopic(chatID);
+      const topic = bee.makeFeedTopic(chatID);
 
-      const feedReader = this.readerBee.makeFeedReader(
-        "sequence",
-        topic,
-        user.address,
-        { timeout: 1500 }
-      );
+      const feedReader = bee.makeFeedReader("sequence", topic, user.address, {
+        timeout: 1500,
+      });
       const recordPointer = await feedReader.download({ index: user.index });
 
-      const data = await this.readerBee.downloadData(recordPointer.reference, {
+      const data = await bee.downloadData(recordPointer.reference, {
         headers: {
           "Swarm-Redundancy-Level": "0",
         },
@@ -419,6 +420,44 @@ export class SwarmChat {
         this.emitter.emit(EVENTS.LOADING_INIT_USERS, false);
       }
     }
+  }
+
+  private getMainGsocBee() {
+    const { bee } = this.utils.selectBee(this.bees, BeeType.GSOC, true);
+    if (!bee) {
+      throw new Error("Could not get main GSOC bee");
+    }
+    return bee;
+  }
+
+  private getGsocBee() {
+    const { bee, stamp } = this.utils.selectBee(this.bees, BeeType.GSOC);
+    if (!bee) {
+      throw new Error("Could not get GSOC bee");
+    }
+    if (!stamp) {
+      throw new Error("Could not get valid gsoc stamp");
+    }
+    return { bee, stamp };
+  }
+
+  private getReaderBee() {
+    const { bee } = this.utils.selectBee(this.bees, BeeType.READER);
+    if (!bee) {
+      throw new Error("Could not get reader bee");
+    }
+    return bee;
+  }
+
+  private getWriterBee() {
+    const { bee, stamp } = this.utils.selectBee(this.bees, BeeType.WRITER);
+    if (!bee) {
+      throw new Error("Could not get writer bee");
+    }
+    if (!stamp) {
+      throw new Error("Could not get valid writer stamp");
+    }
+    return { bee, stamp };
   }
 
   private emitStateEvent(event: string, value: any) {
