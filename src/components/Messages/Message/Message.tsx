@@ -1,7 +1,7 @@
 import React from "react";
 import clsx from "clsx";
 
-import { VisibleMessage } from "../../../libs/types";
+import { VisibleMessage } from "@solarpunkltd/swarm-chat-js";
 import { createMonogram } from "../../../utils/common";
 import { formatTime } from "../../../utils/date";
 

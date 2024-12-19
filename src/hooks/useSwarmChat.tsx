@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Wallet } from "ethers";
 
-import { EVENTS, SwarmChat } from "../libs";
-import { Bees, EthAddress, VisibleMessage } from "../libs/types";
+import {
+  EVENTS,
+  SwarmChat,
+  Bees,
+  EthAddress,
+  VisibleMessage,
+} from "@solarpunkltd/swarm-chat-js";
 
 interface UseSwarmChatParams {
   topic: string;

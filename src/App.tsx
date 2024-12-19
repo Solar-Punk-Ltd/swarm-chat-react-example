@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { BatchId } from "@ethersphere/bee-js";
 
 import { getWallet } from "./utils/wallet";
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { VisibleMessage } from "../../libs/types";
+import { VisibleMessage } from "@solarpunkltd/swarm-chat-js";
 
 import { Message } from "./Message/Message";
 
