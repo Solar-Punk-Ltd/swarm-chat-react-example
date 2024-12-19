@@ -40,9 +40,10 @@
 .message__right-side__text {
   background-color: var(--primary-grey);
   border: 1px solid #e1dde9;
-  border-bottom-left-radius: 8px;
+  border-bottom-left-radius: 0px;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
   padding: 8px;
   font-family: Inter;
   font-size: 12px;
@@ -56,12 +57,11 @@
 
 .message__right-side__text.own {
   background-color: #4a287533;
-
   color: #333333;
-  border-bottom-left-radius: 0;
+  border-bottom-left-radius: 8px;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-bottom-right-radius: 0px;
 }
 
 .message__right-side__message-controls {

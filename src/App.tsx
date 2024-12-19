@@ -1,52 +1,59 @@
-import React from "react";
-import logo from "./logo.svg";
-import { Wallet, hexlify } from "ethers";
-import { Utils, BatchId } from "@ethersphere/bee-js";
-import "./App.css";
+import { useState } from "react";
+
+import { getWallet } from "./utils/wallet";
+
 import Chat from "./components/Chat/Chat";
 
-function getWallet(input: string): Wallet {
-  const privateKey = Utils.keccak256Hash(input);
-  return new Wallet(hexlify(privateKey));
-}
+import "./App.css";
 
 function App() {
-  const wallet = getWallet("doomsday");
+  const [showUserModal, setShowUserModal] = useState<boolean>(true);
+  const [chatData, setChatData] = useState<Record<string, any>>({});
+
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const topic = formData.get("topic") as string;
+    const name = formData.get("name") as string;
+    const wallet = getWallet(name);
+
+    setChatData({ topic, name, wallet });
+    setShowUserModal(false);
+  };
 
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-      <Chat
-        title={"DOOMSDAY"}
-        topic={"DOOMSDAYTOPIC"}
-        wallet={wallet}
-        stamp={
-          "2d89dfa779b83ea3d9270186f5110e4410cfeb1ccfe8894ec6f372bb67a18ad1" as BatchId
-        }
-        nickname={"superman"}
-        gsocResourceId={
-          "0115000000000000000000000000000000000000000000000000000000000000"
-        }
-        gateway={
-          "044607732392bd78beead28ba5f1bce71356a376ffe2c50ad51a844a179028f1"
-        }
-        topMenuColor={undefined}
-        backAction={() => {}}
-        activeNumber={0}
-      />
+      {showUserModal ? (
+        <form onSubmit={handleFormSubmit}>
+          <div>
+            <label>
+              Topic:
+              <input
+                name="topic"
+                type="text"
+                required
+                defaultValue="DOOMSDAYTOPIC"
+              />
+            </label>
+          </div>
+          <div>
+            <label>
+              Name:
+              <input name="name" type="text" required />
+            </label>
+          </div>
+          <button type="submit">Submit</button>
+        </form>
+      ) : (
+        <Chat
+          title="DOOMSDAY"
+          topic={chatData.topic}
+          wallet={chatData.wallet}
+          nickname={chatData.name}
+          gsocResourceId="e09b760000000000000000000000000000000000000000000000000000000000"
+        />
+      )}
     </div>
   );
 }
