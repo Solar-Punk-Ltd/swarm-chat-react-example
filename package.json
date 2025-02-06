@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "vite",
+    "preview": "vite preview",
     "build": "tsc && vite build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "dependencies": {
-    "@solarpunkltd/swarm-chat-js": "^0.0.2",
+    "@solarpunkltd/swarm-chat-js": "file:../swarm-chat-js",
     "@ethersphere/bee-js": "^6.9.1",
     "@solarpunkltd/gsoc": "^0.2.3",
     "clsx": "^2.1.1",

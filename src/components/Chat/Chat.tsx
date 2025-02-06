@@ -26,7 +26,14 @@ const Chat: React.FC<ChatProps> = ({
   nickname,
   gsocResourceId,
 }) => {
-  const { chatLoading, allMessages, sendMessage } = useSwarmChat({
+  const {
+    chatLoading,
+    messagesLoading,
+    allMessages,
+    sendMessage,
+    fetchPreviousMessages,
+    error,
+  } = useSwarmChat({
     topic,
     nickname,
     gsocResourceId,
@@ -61,11 +68,26 @@ const Chat: React.FC<ChatProps> = ({
     },
   });
 
+  if (error) {
+    return (
+      <div className="chat-page">
+        Critical error: {error.message} Please check node availablity status.
+      </div>
+    );
+  }
+
   return (
     <div className="chat-page">
       <div className="chat-page__header">
         <ChatHeader category={title} />
+        <button onClick={fetchPreviousMessages} disabled={messagesLoading}>
+          Fetch previous messages
+        </button>
       </div>
+
+      {messagesLoading && (
+        <div className="chat-page__loading-messages">Loading messages...</div>
+      )}
 
       {!chatLoading ? (
         <>

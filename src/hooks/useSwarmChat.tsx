@@ -28,6 +28,8 @@ export const useSwarmChat = ({
   const messageCache = useRef<VisibleMessage[]>([]);
   const [allMessages, setAllMessages] = useState<VisibleMessage[]>([]);
   const [chatLoading, setChatLoading] = useState<boolean>(true);
+  const [messagesLoading, setMessagesLoading] = useState<boolean>(false);
+  const [error, setError] = useState<any | null>(null);
 
   useEffect(() => {
     if (!chat.current) {
@@ -82,8 +84,16 @@ export const useSwarmChat = ({
         setAllMessages(newChat.orderMessages([...messageCache.current]));
       });
 
-      on(EVENTS.LOADING_INIT_USERS, (data: boolean) => {
+      on(EVENTS.LOADING_INIT, (data: boolean) => {
         setChatLoading(data);
+      });
+
+      on(EVENTS.LOADING_PREVIOUS_MESSAGES, (data: boolean) => {
+        setMessagesLoading(data);
+      });
+
+      on(EVENTS.CRITICAL_ERROR, (data: any) => {
+        setError(data);
       });
 
       newChat.start();
@@ -98,6 +108,14 @@ export const useSwarmChat = ({
   }, []);
 
   const sendMessage = (message: string) => chat.current?.sendMessage(message);
+  const fetchPreviousMessages = () => chat.current?.fetchPreviousMessages();
 
-  return { chatLoading, allMessages, sendMessage };
+  return {
+    chatLoading,
+    messagesLoading,
+    allMessages,
+    sendMessage,
+    fetchPreviousMessages,
+    error,
+  };
 };
