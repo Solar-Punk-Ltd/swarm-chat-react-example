@@ -12,8 +12,8 @@ importers:
         specifier: ^9.0.3
         version: 9.3.0
       '@solarpunkltd/swarm-chat-js':
-        specifier: ^4.2.1
-        version: 4.2.1
+        specifier: ^4.2.2
+        version: 4.2.2
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -404,8 +404,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@solarpunkltd/swarm-chat-js@4.2.1':
-    resolution: {integrity: sha512-N03hwjCOOVNxBZfzpKv3zgtLeS900H7u1fckI3/+XXqUbmduk32TNlkRLGF7hfciVC2gqBSTHWP3N1L+2aj0FQ==}
+  '@solarpunkltd/swarm-chat-js@4.2.2':
+    resolution: {integrity: sha512-bBmKl0zIZt5oi8EDxiBxWA53iC8P8hbAxn375tNWpPozss34XlCcgSb7H8EX95RsUCT0R0D2pTdVtTNnr/KD7g==}
 
   '@swc/core-darwin-arm64@1.10.1':
     resolution: {integrity: sha512-NyELPp8EsVZtxH/mEqvzSyWpfPJ1lugpTQcSlMduZLj1EASLO4sC8wt8hmL1aizRlsbjCX+r0PyL+l0xQ64/6Q==}
@@ -1422,7 +1422,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.28.1':
     optional: true
 
-  '@solarpunkltd/swarm-chat-js@4.2.1':
+  '@solarpunkltd/swarm-chat-js@4.2.2':
     dependencies:
       '@ethersphere/bee-js': 9.3.0
       cafe-utility: 27.18.0
