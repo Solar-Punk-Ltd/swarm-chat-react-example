@@ -1,9 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
+import { MainLayout } from "@/layouts/MainLayout";
 import App from "./App";
 
-import "./index.css";
+import "@/styles/globals.scss";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -11,6 +12,8 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <App />
+    <MainLayout>
+      <App />
+    </MainLayout>
   </React.StrictMode>
 );

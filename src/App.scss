@@ -1,0 +1,80 @@
+@use "sass:color";
+
+$primary-color: #fe8950;
+$primary-color-dark: color.adjust($primary-color, $lightness: -10%);
+$text-color: #333;
+$label-color: white;
+$border-color: #ccc;
+$input-bg: #fff;
+
+$spacing-unit: 8px;
+$border-radius: 4px;
+$input-padding: $spacing-unit * 1.5;
+
+form {
+  padding: $spacing-unit * 3;
+  border-radius: $border-radius * 2;
+  max-width: 500px;
+  margin: $spacing-unit * 3 auto;
+  color: $text-color;
+
+  div {
+    margin-bottom: $spacing-unit * 2.5;
+
+    &:last-of-type {
+      margin-bottom: $spacing-unit * 3;
+    }
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    color: $label-color;
+    margin-bottom: $spacing-unit * 0.75;
+    font-size: 0.9rem;
+  }
+
+  input[type="text"] {
+    display: block;
+    width: 100%;
+    padding: $input-padding;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    box-sizing: border-box;
+    font-size: 1rem;
+    color: $text-color;
+    background-color: $input-bg;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px
+        rgba(color.adjust($primary-color, $alpha: -0.8), 0.2);
+    }
+
+    &::placeholder {
+      color: #999;
+      opacity: 1;
+    }
+  }
+
+  button[type="submit"] {
+    display: block;
+    width: 100%;
+    padding: $input-padding;
+    background-color: $primary-color;
+    color: white;
+    border: none;
+    border-radius: $border-radius;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+
+    &:hover {
+      background-color: $primary-color-dark;
+    }
+  }
+}

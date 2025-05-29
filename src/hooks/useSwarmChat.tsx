@@ -1,90 +1,84 @@
 import { useEffect, useRef, useState } from "react";
-import { Wallet } from "ethers";
-
 import {
   EVENTS,
+  MessageData,
   SwarmChat,
-  Bees,
-  EthAddress,
-  VisibleMessage,
+  ChatSettings,
 } from "@solarpunkltd/swarm-chat-js";
 
-interface UseSwarmChatParams {
-  topic: string;
-  nickname: string;
-  gsocResourceId: string;
-  wallet: Wallet;
-  bees: Bees;
+export interface VisibleMessage extends MessageData {
+  requested?: boolean;
+  uploaded?: boolean;
+  received?: boolean;
+  error?: boolean;
 }
 
-export const useSwarmChat = ({
-  topic,
-  nickname,
-  gsocResourceId,
-  wallet,
-  bees,
-}: UseSwarmChatParams) => {
+export const useSwarmChat = ({ user, infra }: ChatSettings) => {
   const chat = useRef<SwarmChat | null>(null);
   const messageCache = useRef<VisibleMessage[]>([]);
   const [allMessages, setAllMessages] = useState<VisibleMessage[]>([]);
   const [chatLoading, setChatLoading] = useState<boolean>(true);
+  const [messagesLoading, setMessagesLoading] = useState<boolean>(false);
+  const [error, setError] = useState<any | null>(null);
 
   useEffect(() => {
     if (!chat.current) {
       const newChat = new SwarmChat({
-        gsocResourceId,
-        topic,
-        nickname,
-        bees,
-        ownAddress: wallet.address as EthAddress,
-        privateKey: wallet.privateKey,
+        user,
+        infra,
       });
+
       chat.current = newChat;
 
       const { on } = newChat.getEmitter();
 
-      const updateMessage = (
-        id: string,
-        messages: VisibleMessage[],
-        updates: Partial<VisibleMessage>
-      ): VisibleMessage[] => {
-        const messageIndex = messages.findIndex((msg) => msg.id === id);
-        if (messageIndex !== -1) {
-          messages[messageIndex] = { ...messages[messageIndex], ...updates };
-        }
-        return [...messages];
+      const updateMessage = (id: string, updates: Partial<VisibleMessage>) => {
+        messageCache.current = messageCache.current.map((msg) =>
+          msg.id === id ? { ...msg, ...updates } : msg
+        );
+        setAllMessages(
+          chat.current?.orderMessages([...messageCache.current]) || []
+        );
       };
 
-      on(EVENTS.MESSAGE_REQUEST_SENT, (data: VisibleMessage) => {
-        messageCache.current.push({ ...data, error: false, sent: false });
-        setAllMessages(newChat.orderMessages([...messageCache.current]));
-      });
+      const handleMessageEvent = (
+        event: string,
+        updates: Partial<VisibleMessage>
+      ) => {
+        on(event, (d: MessageData | string) => {
+          const data = typeof d === "string" ? JSON.parse(d) : d;
 
-      on(EVENTS.MESSAGE_REQUEST_ERROR, (data: { id: string }) => {
-        messageCache.current = updateMessage(data.id, messageCache.current, {
-          error: true,
+          const existingMessage = messageCache.current.find(
+            (msg) => msg.id === data.id
+          );
+          if (existingMessage) {
+            updateMessage(data.id, updates);
+          } else {
+            messageCache.current.push({ ...data, ...updates });
+            setAllMessages(
+              chat.current?.orderMessages([...messageCache.current]) || []
+            );
+          }
         });
-        setAllMessages(newChat.orderMessages([...messageCache.current]));
-      });
+      };
 
-      on(EVENTS.MESSAGE_RECEIVED, (data: VisibleMessage) => {
-        const existingMessage = messageCache.current.find(
-          (msg) => msg.id === data.id
-        );
-        if (existingMessage) {
-          messageCache.current = updateMessage(data.id, messageCache.current, {
-            error: false,
-            sent: true,
-          });
-        } else {
-          messageCache.current.push({ ...data, error: false, sent: true });
-        }
-        setAllMessages(newChat.orderMessages([...messageCache.current]));
+      handleMessageEvent(EVENTS.MESSAGE_REQUEST_INITIATED, {
+        error: false,
+        requested: true,
       });
+      handleMessageEvent(EVENTS.MESSAGE_REQUEST_UPLOADED, {
+        error: false,
+        uploaded: true,
+      });
+      handleMessageEvent(EVENTS.MESSAGE_RECEIVED, {
+        error: false,
+        received: true,
+      });
+      handleMessageEvent(EVENTS.MESSAGE_REQUEST_ERROR, { error: true });
 
-      on(EVENTS.LOADING_INIT_USERS, (data: boolean) => {
-        setChatLoading(data);
-      });
+      on(EVENTS.LOADING_INIT, setChatLoading);
+      on(EVENTS.LOADING_PREVIOUS_MESSAGES, setMessagesLoading);
+      on(EVENTS.CRITICAL_ERROR, setError);
 
       newChat.start();
     }
@@ -95,9 +89,28 @@ export const useSwarmChat = ({
         chat.current = null;
       }
     };
-  }, []);
+  }, [user.privateKey]);
 
   const sendMessage = (message: string) => chat.current?.sendMessage(message);
 
-  return { chatLoading, allMessages, sendMessage };
+  const fetchPreviousMessages = () => chat.current?.fetchPreviousMessages();
+
+  const retrySendMessage = (message: VisibleMessage) => {
+    if (message.requested && message.error) {
+      chat.current?.retrySendMessage(message);
+    }
+    if (message.uploaded && message.error) {
+      chat.current?.retryBroadcastUserMessage(message);
+    }
+  };
+
+  return {
+    chatLoading,
+    messagesLoading,
+    allMessages,
+    sendMessage,
+    fetchPreviousMessages,
+    retrySendMessage,
+    error,
+  };
 };

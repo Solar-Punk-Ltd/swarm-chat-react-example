@@ -9,14 +9,11 @@ importers:
   .:
     dependencies:
       '@ethersphere/bee-js':
-        specifier: ^6.9.1
-        version: 6.9.1
-      '@solarpunkltd/gsoc':
-        specifier: ^0.2.3
-        version: 0.2.3
+        specifier: ^9.0.3
+        version: 9.3.0
       '@solarpunkltd/swarm-chat-js':
-        specifier: ^0.0.2
-        version: 0.0.2
+        specifier: ^4.2.1
+        version: 4.2.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -29,9 +26,6 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
-      sass:
-        specifier: ^1.80.7
-        version: 1.83.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -45,6 +39,9 @@ importers:
       '@vitejs/plugin-react-swc':
         specifier: ^3.7.1
         version: 3.7.2(vite@5.4.11(@types/node@22.10.2)(sass@1.83.0))
+      sass:
+        specifier: ^1.80.7
+        version: 1.83.0
       typescript:
         specifier: ^4.9.5
         version: 4.9.5
@@ -198,17 +195,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@ethersphere/bee-js@6.9.1':
-    resolution: {integrity: sha512-aZaoD4Q9BH2jOPU049vIsN3N/RID/CTrXdpMb593PREU9S9PksZkxVPS95sgLWnUsOK1IzW9a8WtkOIjcRZswA==}
-    engines: {bee: 1.18.2-759f56f, beeApiVersion: 4.0.0, beeDebugApiVersion: 4.0.0, node: '>=14.0.0', npm: '>=6.0.0'}
-
-  '@ethersphere/bee-js@8.3.1':
-    resolution: {integrity: sha512-HIyEzYQmDynFoD0+yXMtNkSBTwdRIKZZs1cZ6H85BAI1eKEXt2dGy+t/IzsUAa5oLq1K7uyoaawaaLZMJqlfrQ==}
-    engines: {bee: 2.2.0-06a0aca7, beeApiVersion: 7.1.0}
-
-  '@ethersphere/swarm-cid@0.1.0':
-    resolution: {integrity: sha512-n+n+w5RJBPm7CiPf8TIgNFIRMo4bLh5bYpZxHObgCaxFW8WNZ4UGfqg+qjS/jEr+A3Mmp0lugKDvd8GnfFy7JQ==}
-    engines: {node: '>=12.0.0', npm: '>=6.0.0'}
+  '@ethersphere/bee-js@9.3.0':
+    resolution: {integrity: sha512-rXzjoHXKZ4uvFLFXP+Vrt7areqyipjEP0cleUU+AAB340+sIgCn/X9aADXRy9DxfQPIS9X4H0SBLbbeGyZ7BXg==}
+    engines: {bee: 2.4.0-390a402e, beeApiVersion: 7.2.0}
 
   '@jridgewell/sourcemap-codec@1.5.0':
     resolution: {integrity: sha512-gv3ZRaISU3fjPAgNsriBRqGWQL6quFx04YMPW/zD8XMLsU32mhCCbfbO6KZFLjvYpCZ8zyDEgqsgf+PwPaM7GQ==}
@@ -219,9 +208,6 @@ packages:
   '@noble/hashes@1.3.2':
     resolution: {integrity: sha512-MVC8EAQp7MvEcm30KWENFjgR+Mkmf+D189XJTkFIlwohU5hcBbn1ZkKq7KVTi2Hme3PMGF390DaL52beVrIihQ==}
     engines: {node: '>= 16'}
-
-  '@nugaon/bmt-js@3.0.2':
-    resolution: {integrity: sha512-MBdQuChOUar9lqZLwstRXlbytrPx/8lvoTyDo9p+ergEc2H5Use96L/+H6bh9wCWFzn0U9gttuDVeJlliQjwiw==}
 
   '@parcel/watcher-android-arm64@2.5.0':
     resolution: {integrity: sha512-qlX4eS28bUcQCdribHkg/herLe+0A9RyYC+mm2PXpncit8z5b3nSqGVzMNR3CmtAOgRutiZ02eIJJgP/b1iEFQ==}
@@ -418,11 +404,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@solarpunkltd/gsoc@0.2.3':
-    resolution: {integrity: sha512-M3bVCXRNysZAxDGoy77vUPIyX7aIZgkNqdHT6cisFyHYvcTNWH38WAIdD3u1larwmobz6u0aotcEiDW9vxiMxw==}
-
-  '@solarpunkltd/swarm-chat-js@0.0.2':
-    resolution: {integrity: sha512-FKrxpICsG9H+1hs9mC/qAPALWnUzJzdr6b+IorJI4HPgvJIG6wQjWnmq+RkXqKUMjMHC56kcyAq7M3TVfE8Anw==}
+  '@solarpunkltd/swarm-chat-js@4.2.1':
+    resolution: {integrity: sha512-N03hwjCOOVNxBZfzpKv3zgtLeS900H7u1fckI3/+XXqUbmduk32TNlkRLGF7hfciVC2gqBSTHWP3N1L+2aj0FQ==}
 
   '@swc/core-darwin-arm64@1.10.1':
     resolution: {integrity: sha512-NyELPp8EsVZtxH/mEqvzSyWpfPJ1lugpTQcSlMduZLj1EASLO4sC8wt8hmL1aizRlsbjCX+r0PyL+l0xQ64/6Q==}
@@ -519,9 +502,6 @@ packages:
   '@types/react@18.3.17':
     resolution: {integrity: sha512-opAQ5no6LqJNo9TqnxBKsgnkIYHozW9KSTlFVoSUJYh1Fl/sswkEoqIugRSm7tbh6pABtYjGAjW+GOS23j8qbw==}
 
-  '@types/readable-stream@2.3.15':
-    resolution: {integrity: sha512-oM5JSKQCcICF1wvGgmecmHldZ48OZamtMxcGGVICOJA8o8cahXC1zEVAif8iwoc5j8etxFaRFnf095+CDsuoFQ==}
-
   '@vitejs/plugin-react-swc@3.7.2':
     resolution: {integrity: sha512-y0byko2b2tSVVf5Gpng1eEhX1OvPC7x8yns1Fx8jDzlJp4LS6CMkCPfLw47cjyoMrshQDoQw4qcgjsU9VvlCew==}
     peerDependencies:
@@ -543,11 +523,8 @@ packages:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
 
-  axios@0.28.1:
-    resolution: {integrity: sha512-iUcGA5a7p0mVb4Gm/sy+FSECNkPFT4y7wt6OM/CDpO/OnNCvSs3PoMG8ibrC9jRoGYU0gUK5pXVC4NPXq6lHRQ==}
-
-  axios@1.7.9:
-    resolution: {integrity: sha512-LhLcE7Hbiryz8oMDdDptSrWowmB4Bl6RCt6sIJKpRB4XtVf0iEgewX3au/pJqm+Py1kCASkb/FFKjxQaLtxJvw==}
+  axios@0.30.0:
+    resolution: {integrity: sha512-Z4F3LjCgfjZz8BMYalWdMgAQUnEtKDmpwNHjh/C8pQZWde32TF64cqnSeyL3xD/aTIASRU30RHTNzRiV/NpGMg==}
 
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
@@ -597,11 +574,8 @@ packages:
   builtin-status-codes@3.0.0:
     resolution: {integrity: sha512-HpGFw18DgFWlncDfjTa2rcQ4W88O1mC8e8yZ2AvQY5KDaktSTwo+KRf6nHK6FRI5FyRyb/5T6+TSxfP7QyGsmQ==}
 
-  cafe-utility@15.0.2:
-    resolution: {integrity: sha512-TNKSfA/q/XRd86NwYtF5QImQB8U5n/hKZuWblYFgYW4aveHcSg2RGOfR3+xquXRXF7BCeNoAXe2/snWFKviPzw==}
-
-  cafe-utility@23.12.0:
-    resolution: {integrity: sha512-B8MHryv6dDTw8GRfJxHLy4zzhewEEYulPAXiSRqkNCeqXFoQAk8THhlU00Yk7dvc8bppnHoS7FaQ468dfGfe6A==}
+  cafe-utility@27.18.0:
+    resolution: {integrity: sha512-aGcLjeOmy8mw5d0eDIB2SrvbRswRSCUIZFIlmhS1u7RXGeHLge+FmCV6AvEbTVbuNN2P9ZKJMbB8osJJOich8g==}
 
   call-bind-apply-helpers@1.0.1:
     resolution: {integrity: sha512-BhYE+WDaywFg2TBWYNXAE+8B1ATnThNBqXHP5nQu0jWJdVvY2hvkpyB3qOmtmDePiS5/BDQ8wASEWGMWRG148g==}
@@ -723,15 +697,6 @@ packages:
 
   evp_bytestokey@1.0.3:
     resolution: {integrity: sha512-/f2Go4TognH/KvCISP7OUsHn85hT9nUkxxA9BEWxFn+Oj9o8ZNLm/40hdlgSLyuOimsrTKLUMEorQexp/aPQeA==}
-
-  fetch-blob@2.1.2:
-    resolution: {integrity: sha512-YKqtUDwqLyfyMnmbw8XD6Q8j9i/HggKtPEI+pZ1+8bvheBu78biSmNaXWusx1TauGqtUUGx/cBb1mKdq2rLYow==}
-    engines: {node: ^10.17.0 || >=12.3.0}
-    peerDependencies:
-      domexception: '*'
-    peerDependenciesMeta:
-      domexception:
-        optional: true
 
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
@@ -858,17 +823,6 @@ packages:
     peerDependencies:
       ws: '*'
 
-  isomorphic-ws@5.0.0:
-    resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
-    peerDependencies:
-      ws: '*'
-
-  js-sha3@0.8.0:
-    resolution: {integrity: sha512-gF1cRrHhIzNfToc802P800N8PpXS+evLLXfsVpowqmAFR9uwbi89WvXg2QspOmXL8QL86J4T1EpFu+yUkwJY3Q==}
-
-  js-sha3@0.9.3:
-    resolution: {integrity: sha512-BcJPCQeLg6WjEx3FE591wVAevlli8lxsxm9/FzV4HXkV49TmBH38Yvrpce6fjbADGMKFrBMGTqrVz3qPIZ88Gg==}
-
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -911,9 +865,6 @@ packages:
 
   minimalistic-crypto-utils@1.0.1:
     resolution: {integrity: sha512-JIYlbt6g8i5jKfJ3xz7rF0LXmv2TkDxBLUkiBeZ7bAx4GnnNMr8xFpGnOxn6GhTEHx3SjRrZEoU+j04prX1ktg==}
-
-  multiformats@9.9.0:
-    resolution: {integrity: sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==}
 
   nanoid@3.3.8:
     resolution: {integrity: sha512-WNLf5Sd8oZxOm+TzppcYk8gVOgP+l58xNy58D0nbUnOxOWRWvlcCV4kUF7ltmI6PsrLl/BgKEyS4mqsGChFN0w==}
@@ -1127,9 +1078,6 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  tar-js@0.3.0:
-    resolution: {integrity: sha512-9uqP2hJUZNKRkwPDe5nXxXdzo6w+BFBPq9x/tyi5/U/DneuSesO/HMb0y5TeWpfcv49YDJTs7SrrZeeu8ZHWDA==}
-
   timers-browserify@2.0.12:
     resolution: {integrity: sha512-9phl76Cqm6FhSX9Xe1ZUAMLtm1BLkKj2Qd5ApyWkXzsMRaA7dgr81kf4wJmQf/hAvg8EEyJxDo3du/0KlhPiKQ==}
     engines: {node: '>=0.6.0'}
@@ -1208,10 +1156,6 @@ packages:
   vm-browserify@1.1.2:
     resolution: {integrity: sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==}
 
-  web-streams-polyfill@4.0.0:
-    resolution: {integrity: sha512-0zJXHRAYEjM2tUfZ2DiSOHAa2aw1tisnnhU3ufD57R8iefL+DcdJyRBRyJpG+NUimDgbTI/lH+gAE1PAvV3Cgw==}
-    engines: {node: '>= 8'}
-
   which-typed-array@1.1.18:
     resolution: {integrity: sha512-qEcY+KJYlWyLH9vNbsr6/5j59AXk5ni5aakf8ldzBvGde6Iz4sxZGkJyWSAueTG7QhOvNRYb1lDdFmL5Td0QKA==}
     engines: {node: '>= 0.4'}
@@ -1247,6 +1191,9 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zod@3.25.34:
+    resolution: {integrity: sha512-lZHvSc2PpWdcfpHlyB33HA9nqP16GpC9IpiG4lYq9jZCJVLZNnWd6Y1cj79bcLSBKTkxepfpjckPv5Y5VOPlwA==}
 
 snapshots:
 
@@ -1321,43 +1268,17 @@ snapshots:
   '@esbuild/win32-x64@0.21.5':
     optional: true
 
-  '@ethersphere/bee-js@6.9.1':
+  '@ethersphere/bee-js@9.3.0':
     dependencies:
-      '@ethersphere/swarm-cid': 0.1.0
-      '@types/readable-stream': 2.3.15
-      axios: 0.28.1
-      cafe-utility: 15.0.2
-      elliptic: 6.6.1
-      fetch-blob: 2.1.2
+      axios: 0.30.0
+      cafe-utility: 27.18.0
       isomorphic-ws: 4.0.1(ws@8.18.0)
-      js-sha3: 0.8.0
-      semver: 7.6.3
-      tar-js: 0.3.0
-      web-streams-polyfill: 4.0.0
-      ws: 8.18.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - domexception
-      - utf-8-validate
-
-  '@ethersphere/bee-js@8.3.1':
-    dependencies:
-      axios: 0.28.1
-      cafe-utility: 23.12.0
-      elliptic: 6.6.1
-      isomorphic-ws: 4.0.1(ws@8.18.0)
-      js-sha3: 0.8.0
       semver: 7.6.3
       ws: 8.18.0
     transitivePeerDependencies:
       - bufferutil
       - debug
       - utf-8-validate
-
-  '@ethersphere/swarm-cid@0.1.0':
-    dependencies:
-      multiformats: 9.9.0
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
 
@@ -1366,10 +1287,6 @@ snapshots:
       '@noble/hashes': 1.3.2
 
   '@noble/hashes@1.3.2': {}
-
-  '@nugaon/bmt-js@3.0.2':
-    dependencies:
-      js-sha3: 0.9.3
 
   '@parcel/watcher-android-arm64@2.5.0':
     optional: true
@@ -1505,24 +1422,12 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.28.1':
     optional: true
 
-  '@solarpunkltd/gsoc@0.2.3':
+  '@solarpunkltd/swarm-chat-js@4.2.1':
     dependencies:
-      '@nugaon/bmt-js': 3.0.2
-      axios: 1.7.9
-      elliptic: 6.6.1
-      isomorphic-ws: 5.0.0(ws@8.18.0)
-      ws: 8.18.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - utf-8-validate
-
-  '@solarpunkltd/swarm-chat-js@0.0.2':
-    dependencies:
-      '@ethersphere/bee-js': 8.3.1
-      '@solarpunkltd/gsoc': 0.2.3
-      ethers: 6.13.4
+      '@ethersphere/bee-js': 9.3.0
+      cafe-utility: 27.18.0
       uuid: 11.0.3
+      zod: 3.25.34
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -1601,11 +1506,6 @@ snapshots:
       '@types/prop-types': 15.7.14
       csstype: 3.1.3
 
-  '@types/readable-stream@2.3.15':
-    dependencies:
-      '@types/node': 22.10.2
-      safe-buffer: 5.1.2
-
   '@vitejs/plugin-react-swc@3.7.2(vite@5.4.11(@types/node@22.10.2)(sass@1.83.0))':
     dependencies:
       '@swc/core': 1.10.1
@@ -1635,15 +1535,7 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.0.0
 
-  axios@0.28.1:
-    dependencies:
-      follow-redirects: 1.15.9
-      form-data: 4.0.1
-      proxy-from-env: 1.1.0
-    transitivePeerDependencies:
-      - debug
-
-  axios@1.7.9:
+  axios@0.30.0:
     dependencies:
       follow-redirects: 1.15.9
       form-data: 4.0.1
@@ -1722,9 +1614,7 @@ snapshots:
 
   builtin-status-codes@3.0.0: {}
 
-  cafe-utility@15.0.2: {}
-
-  cafe-utility@23.12.0: {}
+  cafe-utility@27.18.0: {}
 
   call-bind-apply-helpers@1.0.1:
     dependencies:
@@ -1907,8 +1797,6 @@ snapshots:
       md5.js: 1.3.5
       safe-buffer: 5.2.1
 
-  fetch-blob@2.1.2: {}
-
   fill-range@7.1.1:
     dependencies:
       to-regex-range: 5.0.1
@@ -2032,14 +1920,6 @@ snapshots:
     dependencies:
       ws: 8.18.0
 
-  isomorphic-ws@5.0.0(ws@8.18.0):
-    dependencies:
-      ws: 8.18.0
-
-  js-sha3@0.8.0: {}
-
-  js-sha3@0.9.3: {}
-
   js-tokens@4.0.0: {}
 
   locate-path@6.0.0:
@@ -2082,8 +1962,6 @@ snapshots:
   minimalistic-assert@1.0.1: {}
 
   minimalistic-crypto-utils@1.0.1: {}
-
-  multiformats@9.9.0: {}
 
   nanoid@3.3.8: {}
 
@@ -2374,8 +2252,6 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
-  tar-js@0.3.0: {}
-
   timers-browserify@2.0.12:
     dependencies:
       setimmediate: 1.0.5
@@ -2432,8 +2308,6 @@ snapshots:
 
   vm-browserify@1.1.2: {}
 
-  web-streams-polyfill@4.0.0: {}
-
   which-typed-array@1.1.18:
     dependencies:
       available-typed-arrays: 1.0.7
@@ -2450,3 +2324,5 @@ snapshots:
   xtend@4.0.2: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@3.25.34: {}

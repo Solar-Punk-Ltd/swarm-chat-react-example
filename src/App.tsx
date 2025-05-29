@@ -1,29 +1,36 @@
 import { useState } from "react";
+import { PrivateKey } from "@ethersphere/bee-js";
 
-import { getWallet } from "./utils/wallet";
+import { getSigner } from "@/utils/wallet";
 
-import Chat from "./components/Chat/Chat";
+import { Chat } from "@/components/Chat/Chat";
 
-import "./App.css";
+import "./App.scss";
+
+interface ChatData {
+  topic: string;
+  nickname: string;
+  signer: PrivateKey;
+}
 
 function App() {
   const [showUserModal, setShowUserModal] = useState<boolean>(true);
-  const [chatData, setChatData] = useState<Record<string, any>>({});
+  const [chatData, setChatData] = useState<ChatData>();
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
     const topic = formData.get("topic") as string;
-    const name = formData.get("name") as string;
-    const wallet = getWallet(name);
+    const nickname = formData.get("name") as string;
+    const signer = getSigner(nickname);
 
-    setChatData({ topic, name, wallet });
+    setChatData({ topic, nickname, signer });
     setShowUserModal(false);
   };
 
   return (
-    <div className="App">
+    <>
       {showUserModal ? (
         <form onSubmit={handleFormSubmit}>
           <div>
@@ -47,14 +54,12 @@ function App() {
         </form>
       ) : (
         <Chat
-          title="DOOMSDAY"
-          topic={chatData.topic}
-          wallet={chatData.wallet}
-          nickname={chatData.name}
-          gsocResourceId="e09b760000000000000000000000000000000000000000000000000000000000"
+          topic={chatData?.topic!}
+          signer={chatData?.signer!}
+          nickname={chatData?.nickname!}
         />
       )}
-    </div>
+    </>
   );
 }
 
