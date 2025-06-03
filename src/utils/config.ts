@@ -6,6 +6,7 @@ function getEnv(name: string): string {
 
 export const config = {
   beeUrl: getEnv("VITE_BEE_URL"),
+  chatStamp: getEnv("VITE_CHAT_STAMP"),
   chatOwner: getEnv("VITE_CHAT_OWNER"),
   chatGsocResourceId: getEnv("VITE_CHAT_GSOC_RESOURCE_ID"),
   chatGsocTopic: getEnv("VITE_CHAT_GSOC_TOPIC"),

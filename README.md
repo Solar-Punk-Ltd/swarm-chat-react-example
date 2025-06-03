@@ -63,6 +63,7 @@ Now, edit the `.env` file with the necessary values. These correspond to the `Ch
 # .env
 
 VITE_BEE_URL= Address of the node that will be used by swarm-chat-js
+VITE_CHAT_STAMP = Stamp used to write to the chat
 
 VITE_CHAT_OWNER= Public address of the feed written by the aggregator
 

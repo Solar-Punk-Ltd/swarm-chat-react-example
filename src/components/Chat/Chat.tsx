@@ -52,6 +52,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
     },
     infra: {
       beeUrl: config.beeUrl,
+      stamp: config.chatStamp,
       gsocResourceId: config.chatGsocResourceId,
       gsocTopic: config.chatGsocTopic,
       chatAddress: config.chatOwner,
