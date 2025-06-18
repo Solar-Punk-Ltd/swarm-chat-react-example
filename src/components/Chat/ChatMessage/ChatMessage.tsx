@@ -3,6 +3,10 @@ import clsx from "clsx";
 
 import { ProfilePicture } from "./ProfilePicture/ProfilePicture";
 import { MessageActions } from "./MessageActions/MessageActions";
+import {
+  MessageReactionsWrapper,
+  ReactionData,
+} from "./MessageReactionsWrapper/MessageReactionsWrapper";
 
 import "./ChatMessage.scss";
 
@@ -13,9 +17,10 @@ interface ChatMessageProps {
   ownMessage?: boolean;
   received: boolean;
   error: boolean;
+  reactions?: ReactionData[];
   onRetry?: () => void;
-  onEmojiReaction?: (emoji: string) => void;
-  onThreadReply?: () => void;
+  onEmojiReaction: (emoji: string) => void;
+  onThreadReply: () => void;
 }
 
 export function ChatMessage({
@@ -25,6 +30,7 @@ export function ChatMessage({
   ownMessage = false,
   received,
   error,
+  reactions = [],
   onRetry,
   onEmojiReaction,
   onThreadReply,
@@ -49,13 +55,19 @@ export function ChatMessage({
           "not-received": !received,
         })}
       >
-        <span>{message}</span>
+        <span className="message">{message}</span>
 
         {error && onRetry && (
           <button className="retry-button" onClick={onRetry}>
             Retry
           </button>
         )}
+
+        <MessageReactionsWrapper
+          reactions={reactions}
+          onEmojiClick={onEmojiReaction}
+          ownMessage={ownMessage}
+        />
       </div>
 
       <MessageActions

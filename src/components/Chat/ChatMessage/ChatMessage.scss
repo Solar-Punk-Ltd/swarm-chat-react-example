@@ -44,12 +44,13 @@
     }
   }
 
-  span {
+  .message {
     background-color: rgba(255, 255, 255, 0.05);
     padding: 8px 12px;
     border-radius: 8px;
     margin-right: 4px;
     margin-left: 4px;
+    margin-bottom: 2px;
   }
 }
 
