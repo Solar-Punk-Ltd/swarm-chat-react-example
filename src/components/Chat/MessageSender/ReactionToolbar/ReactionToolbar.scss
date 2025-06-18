@@ -1,21 +1,38 @@
 .reaction-toolbar {
+  margin-left: auto;
 }
 
-/* Style the reactions picker */
+.EmojiPickerReact {
+  --epr-emoji-size: 20px !important;
+}
+
 .epr-main {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
 }
 
-.epr-emoji-category {
-  padding: 0 !important;
-  justify-content: center !important;
+.epr-emoji {
+  &:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    transform: none !important;
+  }
+
+  &:active {
+    transform: scale(0.95) !important;
+  }
 }
 
-.epr-emoji {
-  margin: 0 2px !important;
-  padding: 6px 8px !important;
-  border-radius: 20px !important;
-  transition: all 0.2s ease !important;
+.epr-emoji-native {
+  transform: none !important;
+}
+
+/* Style for the plus button */
+button[aria-label="Show all Emojis"] {
+  &:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    transform: none !important;
+  }
 }

@@ -25,8 +25,6 @@ export function ReactionToolbar({ onEmojiSelect }: ReactionToolbarProps) {
         reactionsDefaultOpen={true}
         onReactionClick={handleReactionClick}
         onEmojiClick={handleEmojiClick}
-        width={200}
-        height={20}
         theme={Theme.DARK}
         previewConfig={{
           showPreview: false,
