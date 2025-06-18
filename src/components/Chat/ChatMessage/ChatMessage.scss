@@ -1,6 +1,7 @@
 .chat-message {
-  width: 100%;
+  position: relative;
   display: flex;
+  width: 100%;
 
   &.own-message {
     flex-direction: row-reverse;

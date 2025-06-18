@@ -63,6 +63,18 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
 
   const handleMessageSending = async (text: string) => sendMessage(text);
 
+  const handleEmojiReaction = (emoji: string) => {
+    // For now, just log the emoji reaction
+    // In a real implementation, you might want to store/send this reaction
+    console.log("Emoji reaction:", emoji);
+  };
+
+  const handleThreadReply = () => {
+    // For now, just log the thread reply action
+    // In a real implementation, you might want to open a thread view
+    console.log("Thread reply clicked");
+  };
+
   if (error) {
     return (
       <div className="chat-container">
@@ -108,6 +120,8 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
                 item.address === signer.publicKey().address().toString()
               }
               onRetry={() => retrySendMessage(item)}
+              onEmojiReaction={handleEmojiReaction}
+              onThreadReply={handleThreadReply}
             />
           )}
         />

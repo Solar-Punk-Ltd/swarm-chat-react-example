@@ -1,6 +1,8 @@
+import { useState } from "react";
 import clsx from "clsx";
 
 import { ProfilePicture } from "./ProfilePicture/ProfilePicture";
+import { MessageActions } from "./MessageActions/MessageActions";
 
 import "./ChatMessage.scss";
 
@@ -12,6 +14,8 @@ interface ChatMessageProps {
   received: boolean;
   error: boolean;
   onRetry?: () => void;
+  onEmojiReaction?: (emoji: string) => void;
+  onThreadReply?: () => void;
 }
 
 export function ChatMessage({
@@ -22,9 +26,17 @@ export function ChatMessage({
   received,
   error,
   onRetry,
+  onEmojiReaction,
+  onThreadReply,
 }: ChatMessageProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className={clsx("chat-message", { "own-message": ownMessage })}>
+    <div
+      className={clsx("chat-message", { "own-message": ownMessage })}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <ProfilePicture
         name={name}
         color={profileColor}
@@ -45,6 +57,12 @@ export function ChatMessage({
           </button>
         )}
       </div>
+
+      <MessageActions
+        visible={isHovered && received && !error}
+        onEmojiClick={onEmojiReaction}
+        onThreadClick={onThreadReply}
+      />
     </div>
   );
 }
