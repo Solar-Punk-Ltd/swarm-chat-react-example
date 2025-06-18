@@ -62,6 +62,7 @@ export function ChatMessage({
         visible={isHovered && received && !error}
         onEmojiClick={onEmojiReaction}
         onThreadClick={onThreadReply}
+        ownMessage={ownMessage}
       />
     </div>
   );

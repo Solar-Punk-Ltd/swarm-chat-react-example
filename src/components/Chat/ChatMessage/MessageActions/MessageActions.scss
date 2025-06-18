@@ -1,7 +1,7 @@
 .message-actions {
   position: absolute;
   visibility: hidden;
-  left: -200px;
+  right: -200px;
   border-radius: 8px;
   padding: 2px;
   background: rgba(255, 255, 255, 0.05);
@@ -10,7 +10,17 @@
 
   &.visible {
     visibility: visible;
-    left: 0;
+    right: 0;
+  }
+
+  &.own-message {
+    right: auto;
+    left: -200px;
+
+    &.visible {
+      right: auto;
+      left: 0;
+    }
   }
 }
 

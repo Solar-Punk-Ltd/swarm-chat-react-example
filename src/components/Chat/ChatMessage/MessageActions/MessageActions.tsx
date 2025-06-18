@@ -12,12 +12,14 @@ interface MessageActionsProps {
   onEmojiClick?: (emoji: string) => void;
   onThreadClick?: () => void;
   visible: boolean;
+  ownMessage?: boolean;
 }
 
 export function MessageActions({
   onEmojiClick,
   onThreadClick,
   visible,
+  ownMessage = false,
 }: MessageActionsProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
@@ -64,7 +66,12 @@ export function MessageActions({
   };
 
   return (
-    <div className={clsx("message-actions", { visible })}>
+    <div
+      className={clsx("message-actions", {
+        visible,
+        "own-message": ownMessage,
+      })}
+    >
       <div className="action-buttons">
         <button
           ref={emojiButtonRef}
