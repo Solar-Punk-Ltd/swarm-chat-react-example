@@ -1,0 +1,21 @@
+.reaction-toolbar {
+}
+
+/* Style the reactions picker */
+.epr-main {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.epr-emoji-category {
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+.epr-emoji {
+  margin: 0 2px !important;
+  padding: 6px 8px !important;
+  border-radius: 20px !important;
+  transition: all 0.2s ease !important;
+}
