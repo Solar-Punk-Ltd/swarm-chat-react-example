@@ -127,12 +127,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
         />
       )}
 
-      {!chatLoading && (
-        <MessageSender
-          onSend={handleMessageSending}
-          onReactionSelect={handleEmojiReaction}
-        />
-      )}
+      {!chatLoading && <MessageSender onSend={handleMessageSending} />}
     </div>
   );
 };

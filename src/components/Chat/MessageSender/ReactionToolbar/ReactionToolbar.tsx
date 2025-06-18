@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import EmojiPicker, {
   EmojiClickData,
   Theme,
@@ -11,26 +12,64 @@ interface ReactionToolbarProps {
 }
 
 export function ReactionToolbar({ onEmojiSelect }: ReactionToolbarProps) {
-  const handleReactionClick = (emojiData: EmojiClickData) => {
-    onEmojiSelect?.(emojiData.emoji);
-  };
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [pickerKey, setPickerKey] = useState(0);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const expandButton = document.querySelector(
+        'button[aria-label="Show all Emojis"]'
+      );
+
+      if (expandButton && !expandButton.hasAttribute("data-listener-added")) {
+        expandButton.setAttribute("data-listener-added", "true");
+
+        expandButton.addEventListener("click", () => {
+          console.log("Expanding to full emoji picker!");
+          setIsExpanded(true);
+        });
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     onEmojiSelect?.(emojiData.emoji);
   };
 
+  const handleCloseClick = () => {
+    setIsExpanded(false);
+    setPickerKey((prev) => prev + 1);
+  };
+
   return (
-    <div className="reaction-toolbar">
-      <EmojiPicker
-        reactionsDefaultOpen={true}
-        onReactionClick={handleReactionClick}
-        onEmojiClick={handleEmojiClick}
-        theme={Theme.DARK}
-        previewConfig={{
-          showPreview: false,
-        }}
-        emojiStyle={EmojiStyle.NATIVE}
-      />
+    <div className={`reaction-toolbar ${isExpanded ? "expanded" : ""}`}>
+      {isExpanded && (
+        <button className="close-picker-button" onClick={handleCloseClick}>
+          ✕
+        </button>
+      )}
+      <div>
+        <EmojiPicker
+          key={pickerKey}
+          reactionsDefaultOpen={true}
+          onEmojiClick={handleEmojiClick}
+          theme={Theme.DARK}
+          previewConfig={{
+            showPreview: false,
+          }}
+          lazyLoadEmojis={true}
+          searchDisabled={false}
+          skinTonesDisabled={true}
+          emojiStyle={EmojiStyle.NATIVE}
+        />
+      </div>
     </div>
   );
 }

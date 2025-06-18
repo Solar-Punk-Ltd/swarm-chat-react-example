@@ -8,15 +8,15 @@ import "./MessageSender.scss";
 
 interface MessageSenderProps {
   onSend?: (text: string) => Promise<void> | void;
-  onReactionSelect?: (emoji: string) => void;
 }
 
-export function MessageSender({
-  onSend,
-  onReactionSelect,
-}: MessageSenderProps) {
+export function MessageSender({ onSend }: MessageSenderProps) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+
+  const handleEmojiSelect = (emoji: string) => {
+    setInput(prev => prev + emoji);
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || sending) return;
@@ -45,7 +45,7 @@ export function MessageSender({
       ) : (
         <>
           <div className="message-sender">
-            <ReactionToolbar onEmojiSelect={onReactionSelect} />
+            <ReactionToolbar onEmojiSelect={handleEmojiSelect} />
             <div className="message-sender-input-wrapper">
               <input
                 type="text"

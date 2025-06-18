@@ -1,5 +1,37 @@
 .reaction-toolbar {
   margin-left: auto;
+  position: relative;
+  margin-bottom: 4px;
+
+  .close-picker-button {
+    position: absolute;
+    top: 22px;
+    right: 14px;
+    z-index: 1001;
+    background: rgba(28, 28, 28, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #efefef;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
 }
 
 .EmojiPickerReact {
@@ -10,6 +42,10 @@
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
+}
+
+.reaction-toolbar.expanded .epr-main {
+  background: #222222 !important;
 }
 
 .epr-emoji {
