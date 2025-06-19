@@ -16,9 +16,9 @@ interface ChatMessageProps {
   received: boolean;
   error: boolean;
   reactions?: ReactionData[];
-  onRetry?: () => void;
   onEmojiReaction: (emoji: string) => void;
-  onThreadReply: () => void;
+  onRetry?: () => void;
+  onThreadReply?: () => void;
 }
 
 export function ChatMessage({

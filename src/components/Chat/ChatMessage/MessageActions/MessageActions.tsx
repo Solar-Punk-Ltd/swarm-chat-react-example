@@ -86,16 +86,18 @@ export function MessageActions({
           😊
         </button>
 
-        <button
-          className="action-button thread-button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onThreadClick?.();
-          }}
-          title="Reply in thread"
-        >
-          💬
-        </button>
+        {!!onThreadClick && (
+          <button
+            className="action-button thread-button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onThreadClick?.();
+            }}
+            title="Reply in thread"
+          >
+            💬
+          </button>
+        )}
       </div>
 
       {showEmojiPicker && (
