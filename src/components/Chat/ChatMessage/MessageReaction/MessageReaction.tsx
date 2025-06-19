@@ -14,12 +14,17 @@ export function MessageReaction({
   isUserReaction = false,
   onClick,
 }: MessageReactionProps) {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onClick?.();
+  };
+
   return (
     <button
       className={clsx("message-reaction", {
         "user-reaction": isUserReaction,
       })}
-      onClick={onClick}
+      onClick={handleClick}
       title={`${count} reaction${count > 1 ? "s" : ""}`}
     >
       <span className="reaction-emoji">{emoji}</span>

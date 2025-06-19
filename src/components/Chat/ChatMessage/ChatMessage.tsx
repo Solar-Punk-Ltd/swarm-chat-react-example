@@ -38,8 +38,7 @@ export function ChatMessage({
   return (
     <div
       className={clsx("chat-message", { "own-message": ownMessage })}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => setIsHovered((prev) => !prev)}
     >
       <ProfilePicture
         name={name}

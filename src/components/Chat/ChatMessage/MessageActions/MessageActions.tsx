@@ -31,7 +31,11 @@ export function MessageActions({
     }
   }, [visible]);
 
-  const handleEmojiButtonClick = () => {
+  const handleEmojiButtonClick = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    event.stopPropagation();
+
     if (!showEmojiPicker && emojiButtonRef.current) {
       const buttonRect = emojiButtonRef.current.getBoundingClientRect();
       const pickerWidth = 300;
@@ -84,7 +88,10 @@ export function MessageActions({
 
         <button
           className="action-button thread-button"
-          onClick={onThreadClick}
+          onClick={(event) => {
+            event.stopPropagation();
+            onThreadClick?.();
+          }}
           title="Reply in thread"
         >
           💬
