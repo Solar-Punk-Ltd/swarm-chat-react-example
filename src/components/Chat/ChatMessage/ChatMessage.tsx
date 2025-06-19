@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { ProfilePicture } from "./ProfilePicture/ProfilePicture";
 import { MessageActions } from "./MessageActions/MessageActions";
 import { MessageReactionsWrapper } from "./MessageReactionsWrapper/MessageReactionsWrapper";
+import { MessageThreadWrapper } from "./MessageThreadWrapper/MessageThreadWrapper";
 import { ReactionData } from "@/hooks/useSwarmChat";
 
 import "./ChatMessage.scss";
@@ -16,6 +17,7 @@ interface ChatMessageProps {
   received: boolean;
   error: boolean;
   reactions?: ReactionData[];
+  threadCount?: number;
   onEmojiReaction: (emoji: string) => void;
   onRetry?: () => void;
   onThreadReply?: () => void;
@@ -29,6 +31,7 @@ export function ChatMessage({
   received,
   error,
   reactions = [],
+  threadCount = 0,
   onRetry,
   onEmojiReaction,
   onThreadReply,
@@ -64,6 +67,11 @@ export function ChatMessage({
           reactions={reactions}
           onEmojiClick={onEmojiReaction}
           ownMessage={ownMessage}
+        />
+
+        <MessageThreadWrapper
+          threadCount={threadCount}
+          onThreadClick={onThreadReply}
         />
       </div>
 

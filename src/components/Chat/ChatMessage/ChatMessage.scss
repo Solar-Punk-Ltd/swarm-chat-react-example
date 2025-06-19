@@ -2,6 +2,7 @@
   position: relative;
   display: flex;
   width: 100%;
+  padding: 4px;
 
   &.own-message {
     flex-direction: row-reverse;
@@ -10,6 +11,11 @@
       align-items: flex-end;
       text-align: right;
     }
+  }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
   }
 }
 

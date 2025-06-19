@@ -103,6 +103,24 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
     [messages]
   );
 
+  const threadMessages = useMemo(() => {
+    return messages.filter((msg) => msg.type === MessageType.THREAD);
+  }, [messages]);
+
+  const getThreadMessages = useCallback(
+    (parentMessageId: string) => {
+      const messages = threadMessages.filter(
+        (msg) => msg.targetMessageId === parentMessageId
+      );
+
+      return {
+        messages: messages.sort((a, b) => a.timestamp - b.timestamp),
+        count: messages.length,
+      };
+    },
+    [threadMessages]
+  );
+
   const groupedReactions = useMemo(() => {
     const reactionGroups = buildReactionGroups(reactionMessages);
     return calculateActiveReactions(reactionGroups, user.nickname);
@@ -202,6 +220,14 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
     );
   }, []);
 
+  const sendReply = useCallback((parentMessageId: string, message: string) => {
+    return chatRef.current?.sendMessage(
+      message,
+      MessageType.THREAD,
+      parentMessageId
+    );
+  }, []);
+
   // TODO: this is new
   const fetchPreviousMessages = useCallback(() => {
     return chatRef.current?.fetchPreviousMessages();
@@ -221,11 +247,14 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
     messagesLoading,
     allMessages: messages,
     simpleMessages,
+    threadMessages,
     reactionMessages,
     groupedReactions,
+    getThreadMessages,
     error,
     sendMessage,
     sendReaction,
+    sendReply,
     fetchPreviousMessages,
     retrySendMessage,
   };

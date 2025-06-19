@@ -39,7 +39,6 @@ const privKeyPlaceholder =
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
-  // Thread view state
   const [selectedMessage, setSelectedMessage] = useState<VisibleMessage | null>(
     null
   );
@@ -50,8 +49,10 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
     messagesLoading,
     groupedReactions,
     simpleMessages,
+    getThreadMessages,
     sendMessage,
     sendReaction,
+    sendReply,
     fetchPreviousMessages,
     retrySendMessage,
     error,
@@ -89,9 +90,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
 
   const handleThreadMessageSending = async (text: string) => {
     if (selectedMessage) {
-      // For now, we'll send it as a regular message
-      // In a real implementation, you might want to send it as a thread message
-      await sendMessage(text);
+      await sendReply(selectedMessage.id, text);
     }
   };
 
@@ -112,7 +111,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
         <ThreadView
           originalMessage={selectedMessage}
           originalMessageReactions={groupedReactions[selectedMessage.id] || []}
-          threadMessages={[]} // For now, empty array - will be implemented later
+          threadMessages={getThreadMessages(selectedMessage.id).messages}
           groupedReactions={groupedReactions}
           onBack={handleBackToMain}
           onSendMessage={handleThreadMessageSending}
@@ -154,6 +153,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
                     item.address === signer.publicKey().address().toString()
                   }
                   reactions={groupedReactions[item.id] || []}
+                  threadCount={getThreadMessages(item.id).count}
                   onRetry={() => retrySendMessage(item)}
                   onEmojiReaction={(emoji) =>
                     handleEmojiReaction(item.id, emoji)
