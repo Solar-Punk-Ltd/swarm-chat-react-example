@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   EVENTS,
   MessageData,
   SwarmChat,
   ChatSettings,
+  MessageType,
 } from "@solarpunkltd/swarm-chat-js";
 
 export interface VisibleMessage extends MessageData {
@@ -13,104 +14,219 @@ export interface VisibleMessage extends MessageData {
   error?: boolean;
 }
 
+export interface ReactionData {
+  emoji: string;
+  count: number;
+  users: string[];
+  hasUserReacted: boolean;
+}
+
+const buildReactionGroups = (reactionMessages: MessageData[]) => {
+  const groups: Record<string, Record<string, Record<string, number>>> = {};
+
+  reactionMessages.forEach((reaction) => {
+    const targetId = reaction.targetMessageId!;
+    const emoji = reaction.message;
+    const username = reaction.username;
+
+    if (!groups[targetId]) groups[targetId] = {};
+    if (!groups[targetId][emoji]) groups[targetId][emoji] = {};
+    if (!groups[targetId][emoji][username])
+      groups[targetId][emoji][username] = 0;
+
+    groups[targetId][emoji][username]++;
+  });
+
+  return groups;
+};
+
+const calculateActiveReactions = (
+  reactionGroups: Record<string, Record<string, Record<string, number>>>,
+  currentUserNickname: string
+): Record<string, ReactionData[]> => {
+  const newReactions: Record<string, ReactionData[]> = {};
+
+  Object.entries(reactionGroups).forEach(([targetId, emojis]) => {
+    const reactions: ReactionData[] = [];
+
+    Object.entries(emojis).forEach(([emoji, users]) => {
+      const activeUsers: string[] = [];
+      let hasUserReacted = false;
+
+      Object.entries(users).forEach(([username, count]) => {
+        // If count is odd, the user has this reaction active
+        if (count % 2 === 1) {
+          activeUsers.push(username);
+          if (username === currentUserNickname) {
+            hasUserReacted = true;
+          }
+        }
+      });
+
+      // Only add reaction if there are active users
+      if (activeUsers.length > 0) {
+        reactions.push({
+          emoji,
+          count: activeUsers.length,
+          users: activeUsers,
+          hasUserReacted,
+        });
+      }
+    });
+
+    if (reactions.length > 0) {
+      newReactions[targetId] = reactions;
+    }
+  });
+
+  return newReactions;
+};
+
 export const useSwarmChat = ({ user, infra }: ChatSettings) => {
-  const chat = useRef<SwarmChat | null>(null);
-  const messageCache = useRef<VisibleMessage[]>([]);
-  const [allMessages, setAllMessages] = useState<VisibleMessage[]>([]);
+  const chatRef = useRef<SwarmChat | null>(null);
+
+  const [messages, setMessages] = useState<VisibleMessage[]>([]);
   const [chatLoading, setChatLoading] = useState<boolean>(true);
   const [messagesLoading, setMessagesLoading] = useState<boolean>(false);
   const [error, setError] = useState<any | null>(null);
 
+  const reactionMessages = useMemo(
+    () =>
+      messages.filter(
+        (msg) => msg.type === MessageType.REACTION && msg.targetMessageId
+      ),
+    [messages]
+  );
+
+  const simpleMessages = useMemo(
+    () => messages.filter((msg) => msg.type === MessageType.TEXT),
+    [messages]
+  );
+
+  const groupedReactions = useMemo(() => {
+    const reactionGroups = buildReactionGroups(reactionMessages);
+    return calculateActiveReactions(reactionGroups, user.nickname);
+  }, [reactionMessages, user.nickname]);
+
+  const addMessage = useCallback((newMessage: VisibleMessage) => {
+    setMessages((prevMessages) => {
+      const existingIndex = prevMessages.findIndex(
+        (msg) => msg.id === newMessage.id
+      );
+
+      if (existingIndex !== -1) {
+        const updated = [...prevMessages];
+        updated[existingIndex] = { ...updated[existingIndex], ...newMessage };
+        return chatRef.current?.orderMessages
+          ? chatRef.current.orderMessages(updated)
+          : updated;
+      }
+
+      const newMessages = [...prevMessages, newMessage];
+      return chatRef.current?.orderMessages
+        ? chatRef.current.orderMessages(newMessages)
+        : newMessages;
+    });
+  }, []);
+
+  const createMessageHandler = useCallback(
+    (updates: Partial<VisibleMessage>) => {
+      return (d: MessageData | string) => {
+        const data = typeof d === "string" ? JSON.parse(d) : d;
+        const newMessage = { ...data, ...updates } as VisibleMessage;
+        addMessage(newMessage);
+      };
+    },
+    [addMessage]
+  );
+
   useEffect(() => {
-    if (!chat.current) {
-      const newChat = new SwarmChat({
-        user,
-        infra,
-      });
+    if (chatRef.current) return;
 
-      chat.current = newChat;
+    const newChat = new SwarmChat({ user, infra });
+    chatRef.current = newChat;
 
-      const { on } = newChat.getEmitter();
+    const { on } = newChat.getEmitter();
 
-      const updateMessage = (id: string, updates: Partial<VisibleMessage>) => {
-        messageCache.current = messageCache.current.map((msg) =>
-          msg.id === id ? { ...msg, ...updates } : msg
-        );
-        setAllMessages(
-          chat.current?.orderMessages([...messageCache.current]) || []
-        );
-      };
-
-      const handleMessageEvent = (
-        event: string,
-        updates: Partial<VisibleMessage>
-      ) => {
-        on(event, (d: MessageData | string) => {
-          const data = typeof d === "string" ? JSON.parse(d) : d;
-
-          const existingMessage = messageCache.current.find(
-            (msg) => msg.id === data.id
-          );
-          if (existingMessage) {
-            updateMessage(data.id, updates);
-          } else {
-            messageCache.current.push({ ...data, ...updates });
-            setAllMessages(
-              chat.current?.orderMessages([...messageCache.current]) || []
-            );
-          }
-        });
-      };
-
-      handleMessageEvent(EVENTS.MESSAGE_REQUEST_INITIATED, {
+    on(
+      EVENTS.MESSAGE_REQUEST_INITIATED,
+      createMessageHandler({
         error: false,
         requested: true,
-      });
-      handleMessageEvent(EVENTS.MESSAGE_REQUEST_UPLOADED, {
+      })
+    );
+
+    on(
+      EVENTS.MESSAGE_REQUEST_UPLOADED,
+      createMessageHandler({
         error: false,
         uploaded: true,
-      });
-      handleMessageEvent(EVENTS.MESSAGE_RECEIVED, {
+      })
+    );
+
+    on(
+      EVENTS.MESSAGE_RECEIVED,
+      createMessageHandler({
         error: false,
         received: true,
-      });
-      handleMessageEvent(EVENTS.MESSAGE_REQUEST_ERROR, { error: true });
+      })
+    );
 
-      on(EVENTS.LOADING_INIT, setChatLoading);
-      on(EVENTS.LOADING_PREVIOUS_MESSAGES, setMessagesLoading);
-      on(EVENTS.CRITICAL_ERROR, setError);
+    on(EVENTS.MESSAGE_REQUEST_ERROR, createMessageHandler({ error: true }));
 
-      newChat.start();
-    }
+    on(EVENTS.LOADING_INIT, (loading: boolean) => setChatLoading(loading));
+    on(EVENTS.LOADING_PREVIOUS_MESSAGES, (loading: boolean) =>
+      setMessagesLoading(loading)
+    );
+    on(EVENTS.CRITICAL_ERROR, (err: any) => setError(err));
+
+    newChat.start();
 
     return () => {
-      if (chat.current) {
-        chat.current.stop();
-        chat.current = null;
+      if (chatRef.current) {
+        chatRef.current.stop();
+        chatRef.current = null;
       }
     };
-  }, [user.privateKey]);
+  }, [user.privateKey, createMessageHandler]);
 
-  const sendMessage = (message: string) => chat.current?.sendMessage(message);
+  const sendMessage = useCallback((message: string) => {
+    return chatRef.current?.sendMessage(message, MessageType.TEXT);
+  }, []);
 
-  const fetchPreviousMessages = () => chat.current?.fetchPreviousMessages();
+  const sendReaction = useCallback((targetMessageId: string, emoji: string) => {
+    return chatRef.current?.sendMessage(
+      emoji,
+      MessageType.REACTION,
+      targetMessageId
+    );
+  }, []);
 
-  const retrySendMessage = (message: VisibleMessage) => {
+  // TODO: this is new
+  const fetchPreviousMessages = useCallback(() => {
+    return chatRef.current?.fetchPreviousMessages();
+  }, []);
+
+  const retrySendMessage = useCallback((message: VisibleMessage) => {
     if (message.requested && message.error) {
-      chat.current?.retrySendMessage(message);
+      chatRef.current?.retrySendMessage(message);
     }
     if (message.uploaded && message.error) {
-      chat.current?.retryBroadcastUserMessage(message);
+      chatRef.current?.retryBroadcastUserMessage(message);
     }
-  };
+  }, []);
 
   return {
     chatLoading,
     messagesLoading,
-    allMessages,
+    allMessages: messages,
+    simpleMessages,
+    reactionMessages,
+    groupedReactions,
+    error,
     sendMessage,
+    sendReaction,
     fetchPreviousMessages,
     retrySendMessage,
-    error,
   };
 };

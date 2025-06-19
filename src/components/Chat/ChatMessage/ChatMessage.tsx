@@ -3,10 +3,8 @@ import clsx from "clsx";
 
 import { ProfilePicture } from "./ProfilePicture/ProfilePicture";
 import { MessageActions } from "./MessageActions/MessageActions";
-import {
-  MessageReactionsWrapper,
-  ReactionData,
-} from "./MessageReactionsWrapper/MessageReactionsWrapper";
+import { MessageReactionsWrapper } from "./MessageReactionsWrapper/MessageReactionsWrapper";
+import { ReactionData } from "@/hooks/useSwarmChat";
 
 import "./ChatMessage.scss";
 

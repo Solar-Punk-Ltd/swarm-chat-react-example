@@ -1,12 +1,6 @@
 import { MessageReaction } from "../MessageReaction/MessageReaction";
+import { ReactionData } from "@/hooks/useSwarmChat";
 import "./MessageReactionsWrapper.scss";
-
-export interface ReactionData {
-  emoji: string;
-  count: number;
-  users: string[];
-  hasUserReacted: boolean;
-}
 
 interface MessageReactionsWrapperProps {
   reactions: ReactionData[];

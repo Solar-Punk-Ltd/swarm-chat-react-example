@@ -1,5 +1,4 @@
 import { PrivateKey } from "@ethersphere/bee-js";
-import { useState } from "react";
 
 import { Button } from "@/components/Button/Button";
 import { ChatMessage } from "@/components/Chat/ChatMessage/ChatMessage";
@@ -7,7 +6,6 @@ import { MessageSender } from "@/components/Chat/MessageSender/MessageSender";
 import { ScrollableMessageList } from "@/components/Chat/ScrollableMessageList/ScrollableMessageList";
 import { useSwarmChat } from "@/hooks/useSwarmChat";
 import { config } from "@/utils/config";
-import { ReactionData } from "@/components/Chat/ChatMessage/MessageReactionsWrapper/MessageReactionsWrapper";
 
 import "./Chat.scss";
 
@@ -39,16 +37,13 @@ const privKeyPlaceholder =
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
 export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
-  // State to manage reactions for each message
-  const [messageReactions, setMessageReactions] = useState<
-    Record<string, ReactionData[]>
-  >({});
-
   const {
     chatLoading,
     messagesLoading,
-    allMessages,
+    groupedReactions,
+    simpleMessages,
     sendMessage,
+    sendReaction,
     fetchPreviousMessages,
     retrySendMessage,
     error,
@@ -71,65 +66,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
   const handleMessageSending = async (text: string) => sendMessage(text);
 
   const handleEmojiReaction = (messageId: string, emoji: string) => {
-    setMessageReactions((prev) => {
-      const currentReactions = prev[messageId] || [];
-      const existingReaction = currentReactions.find((r) => r.emoji === emoji);
-
-      if (existingReaction) {
-        // If user already reacted with this emoji, remove their reaction
-        if (existingReaction.hasUserReacted) {
-          const updatedReaction = {
-            ...existingReaction,
-            count: existingReaction.count - 1,
-            hasUserReacted: false,
-            users: existingReaction.users.filter((user) => user !== nickname),
-          };
-
-          if (updatedReaction.count === 0) {
-            // Remove the reaction entirely if count reaches 0
-            return {
-              ...prev,
-              [messageId]: currentReactions.filter((r) => r.emoji !== emoji),
-            };
-          } else {
-            return {
-              ...prev,
-              [messageId]: currentReactions.map((r) =>
-                r.emoji === emoji ? updatedReaction : r
-              ),
-            };
-          }
-        } else {
-          // User hasn't reacted with this emoji, add their reaction
-          return {
-            ...prev,
-            [messageId]: currentReactions.map((r) =>
-              r.emoji === emoji
-                ? {
-                    ...r,
-                    count: r.count + 1,
-                    hasUserReacted: true,
-                    users: [...r.users, nickname],
-                  }
-                : r
-            ),
-          };
-        }
-      } else {
-        // New reaction
-        const newReaction: ReactionData = {
-          emoji,
-          count: 1,
-          users: [nickname],
-          hasUserReacted: true,
-        };
-
-        return {
-          ...prev,
-          [messageId]: [...currentReactions, newReaction],
-        };
-      }
-    });
+    sendReaction(messageId, emoji);
   };
 
   const handleThreadReply = () => {
@@ -156,7 +93,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
           <div className="chat-loading">Loading chat...</div>
         </div>
       )}
-      {!chatLoading && allMessages.length > 0 && (
+      {!chatLoading && simpleMessages.length > 0 && (
         <Button
           onClick={() => fetchPreviousMessages()}
           className="chat-load-more"
@@ -168,9 +105,9 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
       {messagesLoading && (
         <div className="chat-loading">Loading messages...</div>
       )}
-      {!messagesLoading && allMessages.length > 0 && (
+      {!messagesLoading && simpleMessages.length > 0 && (
         <ScrollableMessageList
-          items={allMessages}
+          items={simpleMessages}
           renderItem={(item) => (
             <ChatMessage
               key={item.id}
@@ -182,7 +119,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
               ownMessage={
                 item.address === signer.publicKey().address().toString()
               }
-              reactions={messageReactions[item.id] || []}
+              reactions={groupedReactions[item.id] || []}
               onRetry={() => retrySendMessage(item)}
               onEmojiReaction={(emoji) => handleEmojiReaction(item.id, emoji)}
               onThreadReply={handleThreadReply}
