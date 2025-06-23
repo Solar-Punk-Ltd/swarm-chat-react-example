@@ -40,7 +40,7 @@ function App() {
                 name="topic"
                 type="text"
                 required
-                defaultValue="DOOMSDAYTOPIC"
+                defaultValue="DOOMSDAYTOPIC3"
               />
             </label>
           </div>

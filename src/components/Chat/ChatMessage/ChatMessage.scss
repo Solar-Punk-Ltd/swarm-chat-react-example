@@ -1,6 +1,8 @@
 .chat-message {
-  width: 100%;
+  position: relative;
   display: flex;
+  width: 100%;
+  padding: 4px;
 
   &.own-message {
     flex-direction: row-reverse;
@@ -9,6 +11,11 @@
       align-items: flex-end;
       text-align: right;
     }
+  }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
   }
 }
 
@@ -43,12 +50,13 @@
     }
   }
 
-  span {
+  .message {
     background-color: rgba(255, 255, 255, 0.05);
     padding: 8px 12px;
     border-radius: 8px;
     margin-right: 4px;
     margin-left: 4px;
+    margin-bottom: 2px;
   }
 }
 
