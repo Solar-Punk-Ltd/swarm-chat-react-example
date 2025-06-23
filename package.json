@@ -6,8 +6,8 @@
     "build": "tsc && vite build"
   },
   "dependencies": {
+    "@solarpunkltd/swarm-chat-js": "^5.0.0",
     "@ethersphere/bee-js": "^9.0.3",
-    "@solarpunkltd/swarm-chat-js": "^4.2.2",
     "clsx": "^2.1.1",
     "emoji-picker-react": "^4.12.2",
     "ethers": "^6.13.3",

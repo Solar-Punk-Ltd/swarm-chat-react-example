@@ -228,9 +228,12 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
     );
   }, []);
 
-  // TODO: this is new
+  const hasPreviousMessages = useCallback(() => {
+    return chatRef.current?.hasPreviousMessages();
+  }, []);
+
   const fetchPreviousMessages = useCallback(() => {
-    return chatRef.current?.fetchPreviousMessages();
+    return chatRef.current?.fetchPreviousMessages;
   }, []);
 
   const retrySendMessage = useCallback((message: VisibleMessage) => {
@@ -255,6 +258,7 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
     sendMessage,
     sendReaction,
     sendReply,
+    hasPreviousMessages,
     fetchPreviousMessages,
     retrySendMessage,
   };

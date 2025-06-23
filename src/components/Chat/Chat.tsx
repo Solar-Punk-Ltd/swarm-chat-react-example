@@ -54,6 +54,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
     sendReaction,
     sendReply,
     fetchPreviousMessages,
+    hasPreviousMessages,
     retrySendMessage,
     error,
   } = useSwarmChat({
@@ -126,11 +127,8 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
               <div className="chat-loading">Loading chat...</div>
             </div>
           )}
-          {!chatLoading && simpleMessages.length > 0 && (
-            <Button
-              onClick={() => fetchPreviousMessages()}
-              className="chat-load-more"
-            >
+          {!chatLoading && hasPreviousMessages() && (
+            <Button onClick={fetchPreviousMessages} className="chat-load-more">
               Load more messages
             </Button>
           )}
