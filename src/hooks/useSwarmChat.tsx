@@ -215,11 +215,15 @@ export const useSwarmChat = ({ user, infra }: ChatSettings, isComment?: boolean)
     return chatRef.current?.sendMessage(message, MessageType.TEXT);
   }, []);
 
-const sendReaction = useCallback((targetMessageId: string, emoji: string) => {
-      return chatRef.current?.sendMessage(emoji, MessageType.REACTION, targetMessageId, undefined, reactionMessages);
-    },
-    [reactionMessages],
-  );
+  const sendReaction = useCallback((targetMessageId: string, emoji: string) => {
+    return chatRef.current?.sendMessage(
+      emoji,
+      MessageType.REACTION,
+      targetMessageId,
+      undefined,
+      reactionMessages
+    );
+  }, [reactionMessages]);
 
   const sendReply = useCallback((parentMessageId: string, message: string) => {
     return chatRef.current?.sendMessage(
@@ -229,9 +233,12 @@ const sendReaction = useCallback((targetMessageId: string, emoji: string) => {
     );
   }, []);
 
-  // TODO: this is new
+  const hasPreviousMessages = useCallback(() => {
+    return chatRef.current?.hasPreviousMessages();
+  }, []);
+
   const fetchPreviousMessages = useCallback(() => {
-    return chatRef.current?.fetchPreviousMessages();
+    return chatRef.current?.fetchPreviousMessages;
   }, []);
 
   const retrySendMessage = useCallback((message: VisibleMessage) => {
@@ -256,6 +263,7 @@ const sendReaction = useCallback((targetMessageId: string, emoji: string) => {
     sendMessage,
     sendReaction,
     sendReply,
+    hasPreviousMessages,
     fetchPreviousMessages,
     retrySendMessage,
   };
