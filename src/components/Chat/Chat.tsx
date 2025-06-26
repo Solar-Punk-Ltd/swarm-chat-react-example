@@ -15,6 +15,7 @@ interface ChatProps {
   topic: string;
   nickname: string;
   signer: PrivateKey;
+  isComment?: boolean;
 }
 
 const profileColors = [
@@ -38,7 +39,7 @@ function getColorForName(name: string): string {
 const privKeyPlaceholder =
   "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
-export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
+export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname, isComment }) => {
   const [selectedMessage, setSelectedMessage] = useState<VisibleMessage | null>(
     null
   );
@@ -70,7 +71,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
       chatTopic: `chat-${topic}`,
       enveloped: false,
     },
-  });
+  }, isComment);
 
   const handleMessageSending = async (text: string) => sendMessage(text);
 

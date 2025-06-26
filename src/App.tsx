@@ -16,6 +16,7 @@ interface ChatData {
 function App() {
   const [showUserModal, setShowUserModal] = useState<boolean>(true);
   const [chatData, setChatData] = useState<ChatData>();
+  const [isComment, setIsComment] = useState<boolean>(false);
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -50,6 +51,22 @@ function App() {
               <input name="name" type="text" required />
             </label>
           </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => setIsComment(!isComment)}
+              style={{
+                backgroundColor: isComment ? "#4CAF50" : "#f44336",
+                color: "white",
+                padding: "8px 16px",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              {isComment ? "Comment mode" : "Chat mode"}
+            </button>
+          </div>
           <button type="submit">Submit</button>
         </form>
       ) : (
@@ -57,6 +74,7 @@ function App() {
           topic={chatData?.topic!}
           signer={chatData?.signer!}
           nickname={chatData?.nickname!}
+          isComment={isComment}
         />
       )}
     </>

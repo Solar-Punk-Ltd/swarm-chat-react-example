@@ -7,7 +7,8 @@
   },
   "dependencies": {
     "@ethersphere/bee-js": "^9.0.3",
-    "@solarpunkltd/swarm-chat-js": "^4.2.2",
+    "@solarpunkltd/comment-system": "^1.7.6",
+    "@solarpunkltd/swarm-chat-js": "file:/Users/ujvaribalint/repos/solarpunk/swarm-chat-js",
     "clsx": "^2.1.1",
     "emoji-picker-react": "^4.12.2",
     "ethers": "^6.13.3",

@@ -3,6 +3,8 @@ import {
   EVENTS,
   MessageData,
   SwarmChat,
+  SwarmComment,
+  SwarmMessaging,
   ChatSettings,
   MessageType,
 } from "@solarpunkltd/swarm-chat-js";
@@ -82,8 +84,8 @@ const calculateActiveReactions = (
   return newReactions;
 };
 
-export const useSwarmChat = ({ user, infra }: ChatSettings) => {
-  const chatRef = useRef<SwarmChat | null>(null);
+export const useSwarmChat = ({ user, infra }: ChatSettings, isComment?: boolean) => {
+  const chatRef = useRef<SwarmMessaging | null>(null);
 
   const [messages, setMessages] = useState<VisibleMessage[]>([]);
   const [chatLoading, setChatLoading] = useState<boolean>(true);
@@ -161,7 +163,7 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
   useEffect(() => {
     if (chatRef.current) return;
 
-    const newChat = new SwarmChat({ user, infra });
+    const newChat = isComment ? new SwarmComment({ user, infra }) : new SwarmChat({ user, infra });
     chatRef.current = newChat;
 
     const { on } = newChat.getEmitter();
@@ -179,6 +181,7 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
       createMessageHandler({
         error: false,
         uploaded: true,
+        received: true,
       })
     );
 
@@ -212,13 +215,11 @@ export const useSwarmChat = ({ user, infra }: ChatSettings) => {
     return chatRef.current?.sendMessage(message, MessageType.TEXT);
   }, []);
 
-  const sendReaction = useCallback((targetMessageId: string, emoji: string) => {
-    return chatRef.current?.sendMessage(
-      emoji,
-      MessageType.REACTION,
-      targetMessageId
-    );
-  }, []);
+const sendReaction = useCallback((targetMessageId: string, emoji: string) => {
+      return chatRef.current?.sendMessage(emoji, MessageType.REACTION, targetMessageId, undefined, reactionMessages);
+    },
+    [reactionMessages],
+  );
 
   const sendReply = useCallback((parentMessageId: string, message: string) => {
     return chatRef.current?.sendMessage(
