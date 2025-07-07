@@ -24,12 +24,35 @@ export function MessageActions({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!visible) {
       setShowEmojiPicker(false);
     }
   }, [visible]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showEmojiPicker &&
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        emojiButtonRef.current &&
+        !emojiButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   const handleEmojiButtonClick = (
     event: React.MouseEvent<HTMLButtonElement>
@@ -102,12 +125,16 @@ export function MessageActions({
 
       {showEmojiPicker && (
         <div
+          ref={pickerRef}
           className="emoji-picker-fixed"
           style={{
             position: "fixed",
             top: pickerPosition.top,
             left: pickerPosition.left,
             zIndex: 9999,
+          }}
+          onClick={(event) => {
+            event.stopPropagation();
           }}
         >
           <EmojiPicker
