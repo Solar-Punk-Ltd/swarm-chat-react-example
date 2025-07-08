@@ -3,6 +3,7 @@
   display: flex;
   width: 100%;
   padding: 4px;
+  overflow: visible;
 
   &.own-message {
     flex-direction: row-reverse;
