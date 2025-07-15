@@ -1,17 +1,21 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { VisibleMessage } from "@/hooks/useSwarmChat";
+import { MessageType } from "@solarpunkltd/swarm-chat-js";
 
 import "./ScrollableMessageList.scss";
 
-interface ScrollableMessageListProps<T> {
-  items: T[];
-  renderItem: (item: T) => React.ReactNode;
+interface ScrollableMessageListProps {
+  items: VisibleMessage[];
+  renderItem: (item: VisibleMessage) => React.ReactNode;
 }
 
-export function ScrollableMessageList<T>({
+export function ScrollableMessageList({
   items,
   renderItem,
-}: ScrollableMessageListProps<T>) {
+}: ScrollableMessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const previousItemsStringRef = useRef<string>("");
+  const previousItemsRef = useRef<VisibleMessage[]>([]);
 
   const scrollToBottom = () => {
     if (containerRef.current) {
@@ -23,6 +27,35 @@ export function ScrollableMessageList<T>({
     requestAnimationFrame(() => {
       scrollToBottom();
     });
+  }, []);
+
+  useEffect(() => {
+    const currentItemsString = JSON.stringify(items);
+    const hasItemsChanged =
+      currentItemsString !== previousItemsStringRef.current;
+
+    if (hasItemsChanged) {
+      // Find new items by comparing with previous items
+      const previousItems = previousItemsRef.current;
+      const newItems = items.filter(
+        (item) => !previousItems.some((prevItem) => prevItem.id === item.id)
+      );
+
+      // Update refs
+      previousItemsStringRef.current = currentItemsString;
+      previousItemsRef.current = items;
+
+      // Only scroll if user is near bottom AND there are new text messages
+      const hasNewTextMessages = newItems.some(
+        (item) => item.type !== MessageType.REACTION
+      );
+
+      if (hasNewTextMessages) {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
+      }
+    }
   }, [items]);
 
   return (
