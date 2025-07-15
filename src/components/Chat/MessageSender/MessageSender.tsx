@@ -8,9 +8,13 @@ import "./MessageSender.scss";
 
 interface MessageSenderProps {
   onSend?: (text: string) => Promise<void> | void;
+  disabled?: boolean;
 }
 
-export function MessageSender({ onSend }: MessageSenderProps) {
+export function MessageSender({
+  onSend,
+  disabled = false,
+}: MessageSenderProps) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -19,7 +23,7 @@ export function MessageSender({ onSend }: MessageSenderProps) {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || sending) return;
+    if (!input.trim() || sending || disabled) return;
 
     try {
       setSending(true);
@@ -39,7 +43,7 @@ export function MessageSender({ onSend }: MessageSenderProps) {
   return (
     <div className="message-sender-wrapper">
       <div className="message-sender">
-        {sending ? (
+        {sending || disabled ? (
           <div className="message-sender-sending">
             <InputLoading />
           </div>
@@ -49,19 +53,18 @@ export function MessageSender({ onSend }: MessageSenderProps) {
             <div className="message-sender-input-wrapper">
               <input
                 type="text"
+                name="message"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Please type here"
                 onKeyDown={handleKeyDown}
                 className="message-sender-input"
-                disabled={sending}
               />
               <button
                 className="message-sender-send-button"
                 onClick={sendMessage}
-                disabled={sending || !input.trim()}
               >
-                <SendMessageIcon color={input.trim() ? "" : "#A5ADBA"} />
+                <SendMessageIcon color="#f7b233ff" />
               </button>
             </div>
           </>

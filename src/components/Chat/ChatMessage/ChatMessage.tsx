@@ -23,6 +23,7 @@ interface ChatMessageProps {
   onThreadReply?: () => void;
   isReactionLoading?: boolean;
   loadingReactionEmoji?: string;
+  disabled?: boolean;
 }
 
 export function ChatMessage({
@@ -39,6 +40,7 @@ export function ChatMessage({
   onThreadReply,
   isReactionLoading = false,
   loadingReactionEmoji = "",
+  disabled = false,
 }: ChatMessageProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -73,11 +75,13 @@ export function ChatMessage({
           ownMessage={ownMessage}
           isLoading={isReactionLoading}
           loadingEmoji={loadingReactionEmoji}
+          disabled={disabled}
         />
 
         <MessageThreadWrapper
           threadCount={threadCount}
           onThreadClick={onThreadReply}
+          disabled={disabled}
         />
       </div>
 
@@ -87,6 +91,7 @@ export function ChatMessage({
         onThreadClick={onThreadReply}
         ownMessage={ownMessage}
         isReactionLoading={isReactionLoading}
+        disabled={disabled}
       />
     </div>
   );

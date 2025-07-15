@@ -46,6 +46,8 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
   const [reactionLoadingState, setReactionLoadingState] = useState<
     Record<string, string>
   >({});
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isSendingThreadMessage, setIsSendingThreadMessage] = useState(false);
 
   const {
     chatLoading,
@@ -76,7 +78,14 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
     },
   });
 
-  const handleMessageSending = async (text: string) => sendMessage(text);
+  const handleMessageSending = async (text: string) => {
+    try {
+      setIsSendingMessage(true);
+      await sendMessage(text);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
 
   const handleEmojiReaction = async (messageId: string, emoji: string) => {
     // Prevent multiple reactions on the same message-emoji combination
@@ -109,9 +118,20 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
 
   const handleThreadMessageSending = async (text: string) => {
     if (selectedMessage) {
-      await sendReply(selectedMessage.id, text);
+      try {
+        setIsSendingThreadMessage(true);
+        await sendReply(selectedMessage.id, text);
+      } finally {
+        setIsSendingThreadMessage(false);
+      }
     }
   };
+
+  // Check if any operations are currently loading
+  const isAnyOperationLoading =
+    Object.keys(reactionLoadingState).length > 0 ||
+    isSendingMessage ||
+    isSendingThreadMessage;
 
   if (error) {
     return (
@@ -139,6 +159,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
           getColorForName={getColorForName}
           currentUserAddress={signer.publicKey().address().toString()}
           reactionLoadingState={reactionLoadingState}
+          disabled={isAnyOperationLoading}
         />
       ) : (
         <>
@@ -185,12 +206,18 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
                       key.startsWith(item.id)
                     )?.[1] || ""
                   }
+                  disabled={isAnyOperationLoading}
                 />
               )}
             />
           )}
 
-          {!chatLoading && <MessageSender onSend={handleMessageSending} />}
+          {!chatLoading && (
+            <MessageSender
+              onSend={handleMessageSending}
+              disabled={isAnyOperationLoading}
+            />
+          )}
         </>
       )}
     </div>

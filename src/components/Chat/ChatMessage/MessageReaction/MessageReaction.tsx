@@ -7,6 +7,7 @@ interface MessageReactionProps {
   isUserReaction?: boolean;
   onClick?: () => void;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export function MessageReaction({
@@ -15,10 +16,11 @@ export function MessageReaction({
   isUserReaction = false,
   onClick,
   isLoading = false,
+  disabled = false,
 }: MessageReactionProps) {
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (!isLoading) {
+    if (!isLoading && !disabled) {
       onClick?.();
     }
   };
@@ -28,11 +30,14 @@ export function MessageReaction({
       className={clsx("message-reaction", {
         "user-reaction": isUserReaction,
         loading: isLoading,
+        disabled: disabled,
       })}
       onClick={handleClick}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       title={
-        isLoading
+        disabled
+          ? "Reactions disabled while loading"
+          : isLoading
           ? "Sending reaction..."
           : `${count} reaction${count > 1 ? "s" : ""}`
       }

@@ -18,6 +18,7 @@ interface ThreadViewProps {
   getColorForName: (name: string) => string;
   currentUserAddress: string;
   reactionLoadingState?: Record<string, string>;
+  disabled?: boolean;
 }
 
 export function ThreadView({
@@ -32,6 +33,7 @@ export function ThreadView({
   getColorForName,
   currentUserAddress,
   reactionLoadingState = {},
+  disabled = false,
 }: ThreadViewProps) {
   return (
     <div className="thread-view">
@@ -64,6 +66,7 @@ export function ThreadView({
               key.startsWith(originalMessage.id)
             )?.[1] || ""
           }
+          disabled={disabled}
         />
       </div>
 
@@ -91,6 +94,7 @@ export function ThreadView({
                     key.startsWith(item.id)
                   )?.[1] || ""
                 }
+                disabled={disabled}
               />
             )}
           />
@@ -99,7 +103,7 @@ export function ThreadView({
         )}
       </div>
 
-      <MessageSender onSend={onSendMessage} />
+      <MessageSender onSend={onSendMessage} disabled={disabled} />
     </div>
   );
 }

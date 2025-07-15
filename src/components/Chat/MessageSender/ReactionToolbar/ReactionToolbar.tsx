@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import EmojiPicker, {
   EmojiClickData,
   Theme,
@@ -49,7 +49,7 @@ export function ReactionToolbar({ onEmojiSelect }: ReactionToolbarProps) {
   };
 
   return (
-    <div className={`reaction-toolbar ${isExpanded ? "expanded" : ""}`}>
+    <div className={`reaction-toolbar ${isExpanded ? "expanded" : ""} `}>
       {isExpanded && (
         <button className="close-picker-button" onClick={handleCloseClick}>
           ✕
