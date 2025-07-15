@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import clsx from "clsx";
 import EmojiPicker, {
   EmojiClickData,
@@ -24,12 +25,35 @@ export function MessageActions({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!visible) {
       setShowEmojiPicker(false);
     }
   }, [visible]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showEmojiPicker &&
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        emojiButtonRef.current &&
+        !emojiButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   const handleEmojiButtonClick = (
     event: React.MouseEvent<HTMLButtonElement>
@@ -41,8 +65,22 @@ export function MessageActions({
       const pickerWidth = 300;
       const pickerHeight = 350;
 
+      // Detect Safari for specific adjustments
+      const isSafari = /^((?!chrome|android).)*safari/i.test(
+        navigator.userAgent
+      );
+
       let top = buttonRect.bottom + 4; // Start below the button
       let left = buttonRect.left;
+
+      // For non-own messages (other users), adjust left positioning to ensure picker is visible
+      if (!ownMessage) {
+        left = buttonRect.right - pickerWidth;
+        // If that would make it go off the left edge, position it at the button's left
+        if (left < 16) {
+          left = buttonRect.left;
+        }
+      }
 
       // Check if picker would go off-screen vertically
       if (top + pickerHeight > window.innerHeight) {
@@ -57,6 +95,15 @@ export function MessageActions({
       // Ensure minimum distance from edges
       top = Math.max(16, top);
       left = Math.max(16, left);
+
+      if (isSafari) {
+        // Add extra buffer for Safari's rendering quirks
+        top = Math.max(20, top);
+        left = Math.max(
+          20,
+          Math.min(left, window.innerWidth - pickerWidth - 20)
+        );
+      }
 
       setPickerPosition({ top, left });
     }
@@ -100,31 +147,39 @@ export function MessageActions({
         )}
       </div>
 
-      {showEmojiPicker && (
-        <div
-          className="emoji-picker-fixed"
-          style={{
-            position: "fixed",
-            top: pickerPosition.top,
-            left: pickerPosition.left,
-            zIndex: 9999,
-          }}
-        >
-          <EmojiPicker
-            onEmojiClick={handleEmojiClick}
-            width={300}
-            height={350}
-            theme={Theme.DARK}
-            previewConfig={{
-              showPreview: false,
+      {showEmojiPicker &&
+        createPortal(
+          <div
+            ref={pickerRef}
+            className="emoji-picker-fixed"
+            style={{
+              position: "fixed",
+              top: pickerPosition.top,
+              left: pickerPosition.left,
+              zIndex: 99999,
+              isolation: "isolate",
+              transform: "translateZ(0)",
             }}
-            lazyLoadEmojis={true}
-            searchDisabled={false}
-            skinTonesDisabled={true}
-            emojiStyle={EmojiStyle.NATIVE}
-          />
-        </div>
-      )}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <EmojiPicker
+              onEmojiClick={handleEmojiClick}
+              width={300}
+              height={350}
+              theme={Theme.DARK}
+              previewConfig={{
+                showPreview: false,
+              }}
+              lazyLoadEmojis={true}
+              searchDisabled={false}
+              skinTonesDisabled={true}
+              emojiStyle={EmojiStyle.NATIVE}
+            />
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

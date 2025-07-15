@@ -14,6 +14,7 @@ interface ThreadViewProps {
   onBack: () => void;
   onSendMessage: (message: string) => void;
   onEmojiReaction: (messageId: string, emoji: string) => void;
+  onRetry: (message: VisibleMessage) => void;
   getColorForName: (name: string) => string;
   currentUserAddress: string;
 }
@@ -26,6 +27,7 @@ export function ThreadView({
   onBack,
   onSendMessage,
   onEmojiReaction,
+  onRetry,
   getColorForName,
   currentUserAddress,
 }: ThreadViewProps) {
@@ -51,6 +53,7 @@ export function ThreadView({
           onEmojiReaction={(emoji) =>
             onEmojiReaction(originalMessage.id, emoji)
           }
+          onRetry={() => onRetry(originalMessage)}
         />
       </div>
 
@@ -69,6 +72,7 @@ export function ThreadView({
                 ownMessage={item.address === currentUserAddress}
                 reactions={groupedReactions[item.id] || []}
                 onEmojiReaction={(emoji) => onEmojiReaction(item.id, emoji)}
+                onRetry={() => onRetry(item)}
               />
             )}
           />

@@ -1,6 +1,8 @@
 .message-sender {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  height: 85px;
 
   .message-sender-input-wrapper {
     display: flex;

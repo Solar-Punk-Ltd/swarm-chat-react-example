@@ -117,6 +117,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
           onBack={handleBackToMain}
           onSendMessage={handleThreadMessageSending}
           onEmojiReaction={handleEmojiReaction}
+          onRetry={retrySendMessage}
           getColorForName={getColorForName}
           currentUserAddress={signer.publicKey().address().toString()}
         />

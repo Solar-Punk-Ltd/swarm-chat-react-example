@@ -15,7 +15,7 @@ export function MessageSender({ onSend }: MessageSenderProps) {
   const [sending, setSending] = useState(false);
 
   const handleEmojiSelect = (emoji: string) => {
-    setInput(prev => prev + emoji);
+    setInput((prev) => prev + emoji);
   };
 
   const sendMessage = async () => {
@@ -38,13 +38,13 @@ export function MessageSender({ onSend }: MessageSenderProps) {
 
   return (
     <div className="message-sender-wrapper">
-      {sending ? (
-        <div className="message-sender-sending">
-          <InputLoading />
-        </div>
-      ) : (
-        <>
-          <div className="message-sender">
+      <div className="message-sender">
+        {sending ? (
+          <div className="message-sender-sending">
+            <InputLoading />
+          </div>
+        ) : (
+          <>
             <ReactionToolbar onEmojiSelect={handleEmojiSelect} />
             <div className="message-sender-input-wrapper">
               <input
@@ -64,9 +64,9 @@ export function MessageSender({ onSend }: MessageSenderProps) {
                 <SendMessageIcon color={input.trim() ? "" : "#A5ADBA"} />
               </button>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
