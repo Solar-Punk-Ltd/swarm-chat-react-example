@@ -9,7 +9,7 @@
     "@solarpunkltd/swarm-chat-js": "^5.0.0",
     "@ethersphere/bee-js": "^9.0.3",
     "clsx": "^2.1.1",
-    "emoji-picker-react": "^4.12.2",
+    "emoji-picker-react": "^4.13.1",
     "ethers": "^6.13.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
