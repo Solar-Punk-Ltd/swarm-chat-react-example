@@ -4,7 +4,8 @@
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
   min-height: 0;
-  overflow: scroll;
+  scroll-behavior: smooth;
 }
