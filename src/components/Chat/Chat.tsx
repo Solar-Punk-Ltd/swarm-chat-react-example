@@ -127,7 +127,6 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
     }
   };
 
-  // Check if any operations are currently loading
   const isAnyOperationLoading =
     Object.keys(reactionLoadingState).length > 0 ||
     isSendingMessage ||

@@ -14,8 +14,7 @@ export function ScrollableMessageList({
   renderItem,
 }: ScrollableMessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const previousItemsStringRef = useRef<string>("");
-  const previousItemsRef = useRef<VisibleMessage[]>([]);
+  const previousItemsLengthRef = useRef<number>(0);
 
   const scrollToBottom = () => {
     if (containerRef.current) {
@@ -23,38 +22,23 @@ export function ScrollableMessageList({
     }
   };
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      scrollToBottom();
-    });
-  }, []);
+  const isNearBottom = () => {
+    if (!containerRef.current) return true;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const threshold = 100; // pixels from bottom
+    return scrollTop + clientHeight >= scrollHeight - threshold;
+  };
 
   useEffect(() => {
-    const currentItemsString = JSON.stringify(items);
-    const hasItemsChanged =
-      currentItemsString !== previousItemsStringRef.current;
+    const count = items.length;
 
-    if (hasItemsChanged) {
-      // Find new items by comparing with previous items
-      const previousItems = previousItemsRef.current;
-      const newItems = items.filter(
-        (item) => !previousItems.some((prevItem) => prevItem.id === item.id)
-      );
+    if (count > previousItemsLengthRef.current || isNearBottom()) {
+      previousItemsLengthRef.current = count;
 
-      // Update refs
-      previousItemsStringRef.current = currentItemsString;
-      previousItemsRef.current = items;
-
-      // Only scroll if user is near bottom AND there are new text messages
-      const hasNewTextMessages = newItems.some(
-        (item) => item.type !== MessageType.REACTION
-      );
-
-      if (hasNewTextMessages) {
-        requestAnimationFrame(() => {
-          scrollToBottom();
-        });
-      }
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
     }
   }, [items]);
 

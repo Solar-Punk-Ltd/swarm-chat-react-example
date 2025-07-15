@@ -25,7 +25,6 @@ export function ReactionToolbar({ onEmojiSelect }: ReactionToolbarProps) {
         expandButton.setAttribute("data-listener-added", "true");
 
         expandButton.addEventListener("click", () => {
-          console.log("Expanding to full emoji picker!");
           setIsExpanded(true);
         });
       }
