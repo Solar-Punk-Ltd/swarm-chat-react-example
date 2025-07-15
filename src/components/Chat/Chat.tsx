@@ -43,6 +43,9 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
     null
   );
   const [isThreadView, setIsThreadView] = useState(false);
+  const [reactionLoadingState, setReactionLoadingState] = useState<
+    Record<string, string>
+  >({});
 
   const {
     chatLoading,
@@ -75,8 +78,23 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
 
   const handleMessageSending = async (text: string) => sendMessage(text);
 
-  const handleEmojiReaction = (messageId: string, emoji: string) => {
-    sendReaction(messageId, emoji);
+  const handleEmojiReaction = async (messageId: string, emoji: string) => {
+    // Prevent multiple reactions on the same message-emoji combination
+    const loadingKey = `${messageId}-${emoji}`;
+    if (reactionLoadingState[loadingKey]) return;
+
+    try {
+      setReactionLoadingState((prev) => ({ ...prev, [loadingKey]: emoji }));
+      await sendReaction(messageId, emoji);
+    } finally {
+      // Clear loading state after a short delay to prevent rapid clicking
+      setTimeout(() => {
+        setReactionLoadingState((prev) => {
+          const { [loadingKey]: _, ...rest } = prev;
+          return rest;
+        });
+      }, 500);
+    }
   };
 
   const handleThreadReply = (message: VisibleMessage) => {
@@ -120,6 +138,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
           onRetry={retrySendMessage}
           getColorForName={getColorForName}
           currentUserAddress={signer.publicKey().address().toString()}
+          reactionLoadingState={reactionLoadingState}
         />
       ) : (
         <>
@@ -158,6 +177,14 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
                     handleEmojiReaction(item.id, emoji)
                   }
                   onThreadReply={() => handleThreadReply(item)}
+                  isReactionLoading={Object.keys(reactionLoadingState).some(
+                    (key) => key.startsWith(item.id)
+                  )}
+                  loadingReactionEmoji={
+                    Object.entries(reactionLoadingState).find(([key]) =>
+                      key.startsWith(item.id)
+                    )?.[1] || ""
+                  }
                 />
               )}
             />

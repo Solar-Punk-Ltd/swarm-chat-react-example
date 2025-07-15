@@ -17,6 +17,7 @@ interface ThreadViewProps {
   onRetry: (message: VisibleMessage) => void;
   getColorForName: (name: string) => string;
   currentUserAddress: string;
+  reactionLoadingState?: Record<string, string>;
 }
 
 export function ThreadView({
@@ -30,6 +31,7 @@ export function ThreadView({
   onRetry,
   getColorForName,
   currentUserAddress,
+  reactionLoadingState = {},
 }: ThreadViewProps) {
   return (
     <div className="thread-view">
@@ -54,6 +56,14 @@ export function ThreadView({
             onEmojiReaction(originalMessage.id, emoji)
           }
           onRetry={() => onRetry(originalMessage)}
+          isReactionLoading={Object.keys(reactionLoadingState).some((key) =>
+            key.startsWith(originalMessage.id)
+          )}
+          loadingReactionEmoji={
+            Object.entries(reactionLoadingState).find(([key]) =>
+              key.startsWith(originalMessage.id)
+            )?.[1] || ""
+          }
         />
       </div>
 
@@ -73,6 +83,14 @@ export function ThreadView({
                 reactions={groupedReactions[item.id] || []}
                 onEmojiReaction={(emoji) => onEmojiReaction(item.id, emoji)}
                 onRetry={() => onRetry(item)}
+                isReactionLoading={Object.keys(reactionLoadingState).some(
+                  (key) => key.startsWith(item.id)
+                )}
+                loadingReactionEmoji={
+                  Object.entries(reactionLoadingState).find(([key]) =>
+                    key.startsWith(item.id)
+                  )?.[1] || ""
+                }
               />
             )}
           />

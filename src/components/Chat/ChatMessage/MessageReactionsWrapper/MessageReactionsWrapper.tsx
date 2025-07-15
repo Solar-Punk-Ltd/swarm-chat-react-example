@@ -6,12 +6,16 @@ interface MessageReactionsWrapperProps {
   reactions: ReactionData[];
   onEmojiClick: (emoji: string) => void;
   ownMessage?: boolean;
+  isLoading?: boolean;
+  loadingEmoji?: string;
 }
 
 export function MessageReactionsWrapper({
   reactions,
   onEmojiClick,
   ownMessage = false,
+  isLoading = false,
+  loadingEmoji = "",
 }: MessageReactionsWrapperProps) {
   if (reactions.length === 0) {
     return null;
@@ -28,6 +32,7 @@ export function MessageReactionsWrapper({
           count={reaction.count}
           isUserReaction={reaction.hasUserReacted}
           onClick={() => onEmojiClick(reaction.emoji)}
+          isLoading={isLoading && loadingEmoji === reaction.emoji}
         />
       ))}
     </div>

@@ -14,6 +14,7 @@ interface MessageActionsProps {
   onThreadClick?: () => void;
   visible: boolean;
   ownMessage?: boolean;
+  isReactionLoading?: boolean;
 }
 
 export function MessageActions({
@@ -21,6 +22,7 @@ export function MessageActions({
   onThreadClick,
   visible,
   ownMessage = false,
+  isReactionLoading = false,
 }: MessageActionsProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
@@ -59,6 +61,9 @@ export function MessageActions({
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
     event.stopPropagation();
+
+    // Prevent opening picker while reaction is loading
+    if (isReactionLoading) return;
 
     if (!showEmojiPicker && emojiButtonRef.current) {
       const buttonRect = emojiButtonRef.current.getBoundingClientRect();
@@ -112,6 +117,9 @@ export function MessageActions({
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
+    // Prevent multiple clicks while loading
+    if (isReactionLoading) return;
+
     onEmojiClick?.(emojiData.emoji);
     setShowEmojiPicker(false);
   };
@@ -128,9 +136,10 @@ export function MessageActions({
           ref={emojiButtonRef}
           className="action-button emoji-button"
           onClick={handleEmojiButtonClick}
-          title="Add reaction"
+          disabled={isReactionLoading}
+          title={isReactionLoading ? "Sending reaction..." : "Add reaction"}
         >
-          😊
+          {isReactionLoading ? "⏳" : "😊"}
         </button>
 
         {!!onThreadClick && (
