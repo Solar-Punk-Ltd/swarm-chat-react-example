@@ -64,7 +64,7 @@ export function MessageSender({
                 className="message-sender-send-button"
                 onClick={sendMessage}
               >
-                <SendMessageIcon color="#f7b233ff" />
+                <SendMessageIcon color={input.trim() ? "" : "#A5ADBA"} />
               </button>
             </div>
           </>
