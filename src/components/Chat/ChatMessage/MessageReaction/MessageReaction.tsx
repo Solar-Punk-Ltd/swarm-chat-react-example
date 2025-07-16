@@ -6,6 +6,8 @@ interface MessageReactionProps {
   count: number;
   isUserReaction?: boolean;
   onClick?: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export function MessageReaction({
@@ -13,21 +15,34 @@ export function MessageReaction({
   count,
   isUserReaction = false,
   onClick,
+  isLoading = false,
+  disabled = false,
 }: MessageReactionProps) {
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    onClick?.();
+    if (!isLoading && !disabled) {
+      onClick?.();
+    }
   };
 
   return (
     <button
       className={clsx("message-reaction", {
         "user-reaction": isUserReaction,
+        loading: isLoading,
+        disabled: disabled,
       })}
       onClick={handleClick}
-      title={`${count} reaction${count > 1 ? "s" : ""}`}
+      disabled={isLoading || disabled}
+      title={
+        disabled
+          ? "Reactions disabled while loading"
+          : isLoading
+          ? "Sending reaction..."
+          : `${count} reaction${count > 1 ? "s" : ""}`
+      }
     >
-      <span className="reaction-emoji">{emoji}</span>
+      <span className="reaction-emoji">{isLoading ? "⏳" : emoji}</span>
       <span className="reaction-count">{count}</span>
     </button>
   );

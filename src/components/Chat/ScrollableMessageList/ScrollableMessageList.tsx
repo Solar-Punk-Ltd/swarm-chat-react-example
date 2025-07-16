@@ -1,17 +1,20 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { VisibleMessage } from "@/hooks/useSwarmChat";
+import { MessageType } from "@solarpunkltd/swarm-chat-js";
 
 import "./ScrollableMessageList.scss";
 
-interface ScrollableMessageListProps<T> {
-  items: T[];
-  renderItem: (item: T) => React.ReactNode;
+interface ScrollableMessageListProps {
+  items: VisibleMessage[];
+  renderItem: (item: VisibleMessage) => React.ReactNode;
 }
 
-export function ScrollableMessageList<T>({
+export function ScrollableMessageList({
   items,
   renderItem,
-}: ScrollableMessageListProps<T>) {
+}: ScrollableMessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const previousItemsLengthRef = useRef<number>(0);
 
   const scrollToBottom = () => {
     if (containerRef.current) {
@@ -19,10 +22,24 @@ export function ScrollableMessageList<T>({
     }
   };
 
+  const isNearBottom = () => {
+    if (!containerRef.current) return true;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const threshold = 100; // pixels from bottom
+    return scrollTop + clientHeight >= scrollHeight - threshold;
+  };
+
   useEffect(() => {
-    requestAnimationFrame(() => {
-      scrollToBottom();
-    });
+    const count = items.length;
+
+    if (count > previousItemsLengthRef.current || isNearBottom()) {
+      previousItemsLengthRef.current = count;
+
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    }
   }, [items]);
 
   return (

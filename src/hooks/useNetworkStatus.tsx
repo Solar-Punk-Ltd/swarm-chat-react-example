@@ -62,7 +62,6 @@ export const useNetworkStatus = () => {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     const setupSafariNetworkMonitoring = () => {
-      console.log(isSafari());
       if (!isSafari()) return;
 
       const performPeriodicCheck = () => {

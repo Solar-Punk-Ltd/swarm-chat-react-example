@@ -14,6 +14,8 @@ interface MessageActionsProps {
   onThreadClick?: () => void;
   visible: boolean;
   ownMessage?: boolean;
+  isReactionLoading?: boolean;
+  disabled?: boolean;
 }
 
 export function MessageActions({
@@ -21,6 +23,8 @@ export function MessageActions({
   onThreadClick,
   visible,
   ownMessage = false,
+  isReactionLoading = false,
+  disabled = false,
 }: MessageActionsProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
@@ -59,6 +63,9 @@ export function MessageActions({
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
     event.stopPropagation();
+
+    // Prevent opening picker while reaction is loading or globally disabled
+    if (isReactionLoading || disabled) return;
 
     if (!showEmojiPicker && emojiButtonRef.current) {
       const buttonRect = emojiButtonRef.current.getBoundingClientRect();
@@ -112,6 +119,9 @@ export function MessageActions({
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
+    // Prevent multiple clicks while loading or globally disabled
+    if (isReactionLoading || disabled) return;
+
     onEmojiClick?.(emojiData.emoji);
     setShowEmojiPicker(false);
   };
@@ -128,9 +138,16 @@ export function MessageActions({
           ref={emojiButtonRef}
           className="action-button emoji-button"
           onClick={handleEmojiButtonClick}
-          title="Add reaction"
+          disabled={isReactionLoading || disabled}
+          title={
+            disabled
+              ? "Reactions disabled while loading"
+              : isReactionLoading
+              ? "Sending reaction..."
+              : "Add reaction"
+          }
         >
-          😊
+          {isReactionLoading ? "⏳" : "😊"}
         </button>
 
         {!!onThreadClick && (
@@ -138,9 +155,14 @@ export function MessageActions({
             className="action-button thread-button"
             onClick={(event) => {
               event.stopPropagation();
-              onThreadClick?.();
+              if (!disabled) {
+                onThreadClick?.();
+              }
             }}
-            title="Reply in thread"
+            disabled={disabled}
+            title={
+              disabled ? "Replies disabled while loading" : "Reply in thread"
+            }
           >
             💬
           </button>

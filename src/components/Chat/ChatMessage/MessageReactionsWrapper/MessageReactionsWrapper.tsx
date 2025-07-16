@@ -6,12 +6,18 @@ interface MessageReactionsWrapperProps {
   reactions: ReactionData[];
   onEmojiClick: (emoji: string) => void;
   ownMessage?: boolean;
+  isLoading?: boolean;
+  loadingEmoji?: string;
+  disabled?: boolean;
 }
 
 export function MessageReactionsWrapper({
   reactions,
   onEmojiClick,
   ownMessage = false,
+  isLoading = false,
+  loadingEmoji = "",
+  disabled = false,
 }: MessageReactionsWrapperProps) {
   if (reactions.length === 0) {
     return null;
@@ -27,7 +33,9 @@ export function MessageReactionsWrapper({
           emoji={reaction.emoji}
           count={reaction.count}
           isUserReaction={reaction.hasUserReacted}
-          onClick={() => onEmojiClick(reaction.emoji)}
+          onClick={() => !disabled && onEmojiClick(reaction.emoji)}
+          isLoading={isLoading && loadingEmoji === reaction.emoji}
+          disabled={disabled}
         />
       ))}
     </div>
