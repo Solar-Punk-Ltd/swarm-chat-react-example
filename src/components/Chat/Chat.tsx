@@ -75,6 +75,7 @@ export const Chat: React.FC<ChatProps> = ({ topic, signer, nickname }) => {
       chatAddress: config.chatOwner,
       chatTopic: `chat-${topic}`,
       enveloped: false,
+      waku: { enabled: config.waku === "true" },
     },
   });
 

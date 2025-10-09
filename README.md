@@ -69,6 +69,7 @@ VITE_CHAT_OWNER= Public address of the feed written by the aggregator
 
 VITE_CHAT_GSOC_RESOURCE_ID= Mined GSOC address
 VITE_CHAT_GSOC_TOPIC= Topic used for the mined GSOC address
+VITE_CHAT_WAKU= true or false to enable Waku integration
 
 
 ```
